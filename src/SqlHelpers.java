@@ -15,11 +15,12 @@ public class SqlHelpers {
                 return false;
             }else{
                 results.close();
+                return true;
             }
         }catch(SQLException e){
             e.printStackTrace();
+            return false;
         }
-        return true;
     }
 
     public static boolean InsertToken (String token){

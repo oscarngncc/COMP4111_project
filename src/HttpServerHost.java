@@ -25,10 +25,10 @@ public class HttpServerHost {
                 .setServerInfo("Test/1.1")
                 .setSocketConfig(socketConfig)
                 .setExceptionLogger(new StdErrorExceptionLogger())
-                .registerHandler("/BookManagementService/login*", new HttpHandlers.HttpLoginHandler())
-                .registerHandler("/BookManagementService/logout*", new HttpHandlers.HttpLogoutHandler())
-                .registerHandler("/BookManagementService/books*", new HttpHandlers.HttpBookHandler())
-                .registerHandler("/BookManagementService/transaction*", new HttpHandlers.HttpTransactionHandler())
+                .registerHandler("/BookManagementService/login", new HttpHandlers.HttpLoginHandler())
+                .registerHandler("/BookManagementService/logout", new HttpHandlers.HttpLogoutHandler())
+                .registerHandler("/BookManagementService/books", new HttpHandlers.HttpBookHandler())
+                .registerHandler("/BookManagementService/transaction", new HttpHandlers.HttpTransactionHandler())
                 .create();
 
         server.start();
@@ -45,7 +45,9 @@ public class HttpServerHost {
                 server.shutdown(5, TimeUnit.SECONDS);
             }
         });
+
     }
+
 
     static class StdErrorExceptionLogger implements ExceptionLogger {
 
