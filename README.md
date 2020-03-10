@@ -1,7 +1,7 @@
 # COMP4111_project
-Team:
-members:
-Oscar, Ng Chi Chung - 20422802
+Team:\
+members:\
+Oscar, Ng Chi Chung - 20422802\
 Howard, Ling Hou Lam - 20517592
 
 
