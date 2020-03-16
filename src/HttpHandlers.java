@@ -31,7 +31,6 @@ public class HttpHandlers {
             if (!method.equals("POST")) {
                 throw new MethodNotSupportedException(method + " method not supported");
             }
-
             String retSrc;
             if (request instanceof HttpEntityEnclosingRequest) {
                 HttpEntity entity = ((HttpEntityEnclosingRequest) request).getEntity();
@@ -127,8 +126,32 @@ public class HttpHandlers {
                 return;
             }
 
-            if(method.equals("GET")){
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
+            if(method.equals("GET")){
+                Book book = GeneralHelpers.GetBookFromParams(params);
+                String sortBy = "";
+                boolean asc = true;
+                int limit = 0;
+                if(params.containsKey("sortBy"))
+                    sortBy = params.get("sortBy");
+                if(params.containsKey("asc"))
+                    if(params.get("asc").equals("false"))
+                        asc = false;
+                BookList bookList = SqlHelpers.LookUpBook(book, limit, sortBy, asc);
+                String jsonString ="";
+                try {
+                    jsonString = mapper.writeValueAsString(bookList);
+                }
+                catch (IOException e) {
+                    e.printStackTrace();
+                }
+                StringEntity entity = new StringEntity(
+                        jsonString,
+                        ContentType.create("application/json", Consts.UTF_8));
+                response.setEntity(entity);
+                return;
             }
 
             String retSrc;
@@ -138,20 +161,51 @@ public class HttpHandlers {
             }else{
                 throw new MethodNotSupportedException("JSON not found");
             }
-
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
             if(method.equals("POST")){
-
+                Book book = mapper.readValue(retSrc, Book.class);
+                StringEntity entity = null;
+                int id = SqlHelpers.FindIdenticalBook(book);
+                if(id == 0){
+                    id = SqlHelpers.InsertBook(book);
+                    response.setStatusCode(HttpStatus.SC_CREATED);
+                    entity = new StringEntity(
+                            "<html><body></body>HTTP/1.1 201 Created\n" +
+                                    "Location: /books/"+ id +"</html>",
+                            ContentType.create("text/html", "UTF-8"));
+                }else{
+                    response.setStatusCode(HttpStatus.SC_CONFLICT);
+                    entity = new StringEntity(
+                            "<html><body></body>HTTP/1.1 409 Conflict\n" +
+                                    "Duplicate record: /books/"+ id +"</html>",
+                            ContentType.create("text/html", "UTF-8"));
+                }
+                response.setEntity(entity);
+                return;
             }
 
-            if(method.equals("PUT")){
+            int id = GeneralHelpers.GetBookIdFromUrl(request.getRequestLine().getUri());
 
+            if(method.equals("PUT")){
+                int status = 0;
+                Availability availability = mapper.readValue(retSrc,Availability.class);
+                if (!availability.isAvailable()){
+                    status = SqlHelpers.LoanBook(id);
+                }
+                if (availability.isAvailable()){
+                    status = SqlHelpers.ReturnBook(id);
+                }
+                switch (status){
+                    case 10 : response.setStatusCode(HttpStatus.SC_NOT_FOUND);
+                    case 15 : response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                }
+                return;
             }
 
             if(method.equals("DELETE")){
-
+                if(!SqlHelpers.DeleteBook(id)){
+                    response.setStatusCode(HttpStatus.SC_NOT_FOUND);
+                }
+                return;
             }
         }
     }
@@ -214,9 +268,15 @@ public class HttpHandlers {
 
             if(method.equals("POST")){
                 if(transaction.getOperation().equals("commit")){
+                    if (!SqlHelpers.CommitTransaction(transaction.getTransactionId())){
+                        response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                    }
                     return;
                 }
                 if(transaction.getOperation().equals("cancel")){
+                    if (!SqlHelpers.CancelTransaction(transaction.getTransactionId())){
+                        response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                    }
                     return;
                 }
                 response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
@@ -224,7 +284,9 @@ public class HttpHandlers {
             }
 
             if(method.equals("PUT")){
-
+                if(!SqlHelpers.UpdateTransaction(transaction)){
+                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                }
                 return;
             }
         }
