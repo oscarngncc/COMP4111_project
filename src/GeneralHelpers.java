@@ -1,5 +1,9 @@
+import json.Book;
+
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class GeneralHelpers {
     public static Map<String, String> GetParamsMap(String url)
@@ -32,5 +36,43 @@ public class GeneralHelpers {
             tranactionId = tranactionId + (int) (Math.random() * (10));
         }
         return tranactionId;
+    }
+
+    public static int GetBookIdFromUrl(String url){
+        int id = 0;
+        Pattern pattern = Pattern.compile("books*?");
+        Matcher matcher = pattern.matcher(url);
+        while (matcher.find()) {
+            try{
+                id = Integer.parseInt(matcher.group(1));
+            }catch (NumberFormatException nfe)
+            {
+            }
+        }
+        return id;
+    }
+
+    public static Book GetBookFromParams(Map<String, String> params){
+        Book book = new Book();
+        try{
+            if(params.containsKey("id"))
+                book.setBookId(Integer.parseInt(params.get("id")));
+        }catch (NumberFormatException nfe)
+        {
+        }
+        if(params.containsKey("title"))
+            book.setTitle(params.get("title"));
+        if(params.containsKey("author"))
+            book.setAuthor(params.get("author"));
+        if(params.containsKey("publisher"))
+            book.setPublisher(params.get("publisher"));
+        if(params.containsKey("year"))
+            book.setYear(params.get("year"));
+        if(params.containsKey("available"))
+            if(params.get("available") == "true")
+                book.setAvailable(true);
+            else
+                book.setAvailable(false);
+        return book;
     }
 }
