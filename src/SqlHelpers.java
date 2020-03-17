@@ -115,21 +115,6 @@ public class SqlHelpers {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
             ResultSet results = command.executeQuery(
-                    "SELECT * FROM L_BOOK WHERE TITLE = '" +
-                            book.getTitle() + "' AND AUTHOR = '"+
-                            book.getAuthor() + "' AND PUBLISHER = '"+
-                            book.getPublisher() + "' AND YEAR = "+
-                            book.getYear() +
-                            ";"
-            );
-            if (!results.next()) {
-                results.close();
-            } else {
-                int id = results.getInt(0);
-                results.close();
-                return id;
-            }
-            command.execute(
                     "INSERT INTO L_BOOK (TITLE, AUTHOR, PUBLISHER, YEAR) VALUES ('" +
                     book.getTitle() + "','"+
                     book.getAuthor() + "','" +

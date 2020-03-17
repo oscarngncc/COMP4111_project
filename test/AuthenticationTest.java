@@ -77,7 +77,7 @@ class AuthenticationTest {
 
 
     /** Return the Response, also saving the body beforehand **/
-    private HttpResponse Login(String method, String username, String password) throws  IOException, HttpException {
+    public HttpResponse Login(String method, String username, String password) throws  IOException, HttpException {
 
         if (!conn.isOpen()){
             Socket socket = new Socket(host.getHostName(), host.getPort());
@@ -103,7 +103,7 @@ class AuthenticationTest {
     }
 
 
-    private HttpResponse Logout(String token) throws IOException, HttpException {
+    public HttpResponse Logout(String token) throws IOException, HttpException {
 
         if (!conn.isOpen()){
             Socket socket = new Socket(host.getHostName(), host.getPort());
