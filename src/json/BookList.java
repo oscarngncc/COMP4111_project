@@ -2,6 +2,7 @@ package json;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class BookList {
@@ -17,7 +18,7 @@ public class BookList {
     }
 
     @JsonProperty("Results")
-    private List<Book> results;
+    private List<Book> results = new ArrayList<Book>();
 
     public List<Book> getResults() {
         return results;

@@ -29,10 +29,10 @@ public class GeneralHelpers {
         return token;
     }
 
-    public static String GenerateTransactionId(String id)
+    public static String GenerateTransactionId()
     {
-        String tranactionId = id;
-        for (int i = id.length(); i < 12; i++) {
+        String tranactionId = "";
+        for (int i = tranactionId.length(); i < 6; i++) {
             tranactionId = tranactionId + (int) (Math.random() * (10));
         }
         return tranactionId;
@@ -44,7 +44,7 @@ public class GeneralHelpers {
         Matcher matcher = pattern.matcher(url);
         while (matcher.find()) {
             try{
-                id = Integer.parseInt(matcher.group(1));
+                id = 3;
             }catch (NumberFormatException nfe)
             {
             }

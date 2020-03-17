@@ -4,9 +4,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Transaction {
     @JsonProperty("Transaction")
-    private String transactionId;
+    private int transactionId;
 
-    public String getTransactionId() {
+    public int getTransactionId() {
         return transactionId;
     }
 
@@ -24,7 +24,7 @@ public class Transaction {
         return action;
     }
 
-    @JsonProperty("operation")
+    @JsonProperty("Operation")
     private String Operation;
 
     public String getOperation() {

@@ -101,7 +101,7 @@ public class SqlHelpers {
             if (!results.next()) {
                 results.close();
             } else {
-                int id = results.getInt(0);
+                int id = results.getInt(1);
                 results.close();
                 return id;
             }
@@ -114,16 +114,15 @@ public class SqlHelpers {
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            ResultSet results = command.executeQuery(
+            command.execute(
                     "INSERT INTO L_BOOK (TITLE, AUTHOR, PUBLISHER, YEAR) VALUES ('" +
                     book.getTitle() + "','"+
                     book.getAuthor() + "','" +
                     book.getPublisher() + "'," +
                     book.getYear()+
-                    "); SELECT LAST_INSERT_ID();"
+                    ");"
             );
-            int id = results.getInt(0);
-            results.close();
+            int id = FindIdenticalBook (book);
             return id;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -142,35 +141,35 @@ public class SqlHelpers {
                 sqlStatement += "ID = " + book.getBookId();
                 isFirstCritera = false;
             }
-            if(!book.getTitle().equals(null)){
+            if(!book.getTitle().equals("")){
                 if(!isFirstCritera){
                     sqlStatement += " AND ";
                     isFirstCritera = false;
                 }
-                sqlStatement += "TITLE = '" + book.getTitle() + "'";
+                sqlStatement += "TITLE LIKE '%" + book.getTitle() + "%'";
             }
-            if(!book.getAuthor().equals(null)){
+            if(!book.getAuthor().equals("")){
                 if(!isFirstCritera){
                     sqlStatement += " AND ";
                     isFirstCritera = false;
                 }
-                sqlStatement += "AUTHOR = '" + book.getAuthor() + "'";
+                sqlStatement += "AUTHOR LIKE '%" + book.getAuthor() + "%'";
             }
-            if(!book.getPublisher().equals(null)){
+            if(!book.getPublisher().equals("")){
                 if(!isFirstCritera){
                     sqlStatement += " AND ";
                     isFirstCritera = false;
                 }
-                sqlStatement += "PUBLISHER = '" + book.getPublisher() + "'";
+                sqlStatement += "PUBLISHER LIKE '%" + book.getPublisher() + "%'";
             }
-            if(!book.getYear().equals(null)){
+            if(!book.getYear().equals("")){
                 if(!isFirstCritera){
                     sqlStatement += " AND ";
                     isFirstCritera = false;
                 }
-                sqlStatement += "YEAR = '" + book.getYear() + "'";
+                sqlStatement += "YEAR LIKE '%" + book.getYear() + "%'";
             }
-            if(!book.getAvailable().equals(null)){
+            if(book.getAvailable() != null){
                 if(!isFirstCritera){
                     sqlStatement += " AND ";
                 }
@@ -190,12 +189,11 @@ public class SqlHelpers {
             while (results.next() && (count < limit || limit == 0)) {
                 count++;
                 Book returnBook = new Book();
-                returnBook.setBookId(results.getInt("ID"));
                 returnBook.setTitle(results.getString("TITLE"));
                 returnBook.setAuthor(results.getString("AUTHOR"));
                 returnBook.setPublisher(results.getString("PUBLISHER"));
                 returnBook.setYear(results.getString("YEAR"));
-                returnBook.setAvailable(results.getBoolean("AVAILABLE"));
+                returnBook.setAvailable(null);
 
                 returnList.AddResult(returnBook);
             }
@@ -221,7 +219,7 @@ public class SqlHelpers {
                 results.close();
                 return 10;
             } else {
-                if (!results.getBoolean(0)){
+                if (!results.getBoolean(1)){
                     return 15;
                 }
                 results.close();
@@ -247,7 +245,7 @@ public class SqlHelpers {
                 results.close();
                 return 10;
             } else {
-                if (results.getBoolean(0)){
+                if (results.getBoolean(1)){
                     return 15;
                 }
                 results.close();
@@ -276,6 +274,7 @@ public class SqlHelpers {
                 results.close();
             }
             command.execute("DELETE FROM L_BOOK WHERE ID = " + id + ";");
+            return true;
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -312,22 +311,23 @@ public class SqlHelpers {
         return false;
     }
 
-    public static boolean CommitTransaction (String transactionId){
+    public static boolean CommitTransaction (int transactionId){
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
             ResultSet results = command.executeQuery(
-                    "SELECT BOOK_ID, ACTION FROM L_BOOK WHERE TRANSACTION_ID = " +
+                    "SELECT BOOK_ID, ACTION FROM L_TRANSACTION WHERE TRANSACTION_ID = '" +
                             transactionId +
-                            ";"
+                            "';"
             );
             int status = 0;
-            int bookId = results.getInt(0);
-            String action = results.getString(1);
+            results.next();
+            int bookId = results.getInt("BOOK_ID");
+            String action = results.getString("ACTION");
             results.close();
             if (action.equals("loan")){
                 status = LoanBook(bookId);
-            }else{
+            }else if(action.equals("return")){
                 status = ReturnBook(bookId);
             }
             if(status == 20){
@@ -340,11 +340,11 @@ public class SqlHelpers {
         return false;
     }
 
-    public static boolean CancelTransaction (String transactionId){
+    public static boolean CancelTransaction (int transactionId){
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            command.execute("DELETE L_TRANSACTION WHERE TRANSACTION_ID = '" + transactionId + "';");
+            command.execute("DELETE FROM L_TRANSACTION WHERE TRANSACTION_ID = '" + transactionId + "';");
             return true;
         } catch (SQLException e) {
             e.printStackTrace();

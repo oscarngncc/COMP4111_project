@@ -1,6 +1,10 @@
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.fasterxml.jackson.databind.ser.FilterProvider;
+import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
+import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import org.apache.http.*;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
@@ -9,8 +13,10 @@ import org.apache.http.protocol.HttpRequestHandler;
 import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import json.*;
 
@@ -142,7 +148,9 @@ public class HttpHandlers {
                 BookList bookList = SqlHelpers.LookUpBook(book, limit, sortBy, asc);
                 String jsonString ="";
                 try {
+                    mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
                     jsonString = mapper.writeValueAsString(bookList);
+
                 }
                 catch (IOException e) {
                     e.printStackTrace();
@@ -151,6 +159,14 @@ public class HttpHandlers {
                         jsonString,
                         ContentType.create("application/json", Consts.UTF_8));
                 response.setEntity(entity);
+                return;
+            }
+
+            if(method.equals("DELETE")){
+                int id = GeneralHelpers.GetBookIdFromUrl(request.getRequestLine().getUri());
+                if(!SqlHelpers.DeleteBook(id)){
+                    response.setStatusCode(HttpStatus.SC_NOT_FOUND);
+                }
                 return;
             }
 
@@ -183,10 +199,9 @@ public class HttpHandlers {
                 return;
             }
 
-            int id = GeneralHelpers.GetBookIdFromUrl(request.getRequestLine().getUri());
-
             if(method.equals("PUT")){
                 int status = 0;
+                int id = GeneralHelpers.GetBookIdFromUrl(request.getRequestLine().getUri());
                 Availability availability = mapper.readValue(retSrc,Availability.class);
                 if (!availability.isAvailable()){
                     status = SqlHelpers.LoanBook(id);
@@ -197,13 +212,6 @@ public class HttpHandlers {
                 switch (status){
                     case 10 : response.setStatusCode(HttpStatus.SC_NOT_FOUND);
                     case 15 : response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
-                }
-                return;
-            }
-
-            if(method.equals("DELETE")){
-                if(!SqlHelpers.DeleteBook(id)){
-                    response.setStatusCode(HttpStatus.SC_NOT_FOUND);
                 }
                 return;
             }
@@ -223,7 +231,7 @@ public class HttpHandlers {
                 final HttpContext context) throws HttpException, IOException {
 
             String method = request.getRequestLine().getMethod().toUpperCase(Locale.ROOT);
-            if (!method.equals("POST") && !method.equals("PuT")) {
+            if (!method.equals("POST") && !method.equals("PUT")) {
                 throw new MethodNotSupportedException(method + " method not supported");
             }
 
@@ -242,25 +250,28 @@ public class HttpHandlers {
                 HttpEntity entity = ((HttpEntityEnclosingRequest) request).getEntity();
                 retSrc = EntityUtils.toString(entity);
             }else{
-                if(method.equals("POST")){
-                    // Generate new tranaction id
-                    String transactionId = GeneralHelpers.GenerateTransactionId(token.substring(0,5));
+                response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                return;
+            }
+
+            if(method.equals("POST")){
+            // Generate new tranaction id
+                if(retSrc.equals("")){
+                    String transactionId = GeneralHelpers.GenerateTransactionId();
                     SqlHelpers.InsertTransaction(transactionId);
                     StringEntity entity = new StringEntity(
                             "{\"Transaction\": \"" + transactionId + "\"}",
                             ContentType.create("application/json", Consts.UTF_8));
                     response.setEntity(entity);
-                }else {
-                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                    return;
                 }
-                return;
             }
 
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
             Transaction transaction = mapper.readValue(retSrc, Transaction.class);
 
-            boolean transaction_found = SqlHelpers.IsTransactionIdFound(transaction.getTransactionId());
+            boolean transaction_found = SqlHelpers.IsTransactionIdFound(Integer.toString(transaction.getTransactionId()));
             if(!transaction_found){
                 response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                 return;
