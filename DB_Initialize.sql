@@ -38,7 +38,7 @@ CREATE TABLE L_BOOK (
     AUTHOR varchar(255),
     PUBLISHER varchar(255),
     YEAR varchar(4),
-    AVAILABLE BOOLEAN
+    AVAILABLE BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 #Create an user from any host, not recommended, replace % with our server when it is provided
@@ -47,13 +47,11 @@ CREATE USER 'sqlUser'@'%' IDENTIFIED BY 'sqlUserPwd10000';
 
 GRANT SELECT ON LBM.L_USER TO 'sqlUser'@'%';
 
-GRANT SELECT, INSERT, DELETE, UPDATE ON LBM.L_TOKEN, LBM.L_TRANSACTION, LBM.L_BOOK TO 'sqlUser'@'%';
-
 GRANT SELECT, INSERT, DELETE, UPDATE ON LBM.L_TOKEN TO 'sqlUser'@'%';
 
 GRANT SELECT, INSERT, DELETE, UPDATE ON LBM.L_TRANSACTION TO 'sqlUser'@'%';
 
-GRANT SELECT, INSERT, DELETE, UPDATE ON LBM.L_BOOK TO 'sqlUser'@'%';
+GRANT SELECT, INSERT, DELETE ON LBM.L_BOOK TO 'sqlUser'@'%';
 
 flush privileges;
 
@@ -84,27 +82,3 @@ DO BEGIN
 END;
 $$
 DELIMITER ;
-
-#PROCEDURE for commit transaction
-DELIMITER $$
-CREATE FUNCTION CommitTranaction ()
-RETURNS BOOLEAN
-BEGIN
-
-END
-$$
-DELIMITER ;
-
-#PROCEDURE for commit transaction
-DELIMITER $$
-CREATE FUNCTION CancelTranaction ()
-RETURNS BOOLEAN
-BEGIN
-
-END
-$$
-DELIMITER ;
-
-GRANT EXECUTE ON FUNCTION CommitTranaction, CancelTranaction TO 'sqlUser'@'%';
-
-flush privileges;
