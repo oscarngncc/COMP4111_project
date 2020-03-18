@@ -230,6 +230,13 @@ class BookTest {
     public void addAndDeleteABook() throws IOException, HttpException {
         HttpResponse response = AddBook("Onion adventure", "Oscar", "Oscar Ltd", 2020);
         assertEquals(HttpStatus.SC_CREATED, response.getStatusLine().getStatusCode());
+
+        var arr = responseBody.split("/");
+        int id = Integer.parseInt(arr[arr.length-1]);
+        System.out.println("id is " + id);
+
+        var response2 = deleteBook(id);
+        assertEquals(HttpStatus.SC_OK,  response2.getStatusLine().getStatusCode());
     }
 
 

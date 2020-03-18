@@ -149,15 +149,15 @@ class AuthenticationTest {
         HttpResponse response3 = Login("POST", "", "");
         assertEquals( HttpStatus.SC_BAD_REQUEST, response3.getStatusLine().getStatusCode() );
 
-        HttpResponse response4 = Login("POST", "temp~!@$5", "#12rcd@4erea\'");
-        assertEquals( HttpStatus.SC_BAD_REQUEST, response3.getStatusLine().getStatusCode() );
+        HttpResponse response4 = Login("POST", "temp~!@$5", "#12rcd@4erea");
+        assertEquals( HttpStatus.SC_BAD_REQUEST, response4.getStatusLine().getStatusCode() );
     }
 
 
     @Test
     public void checkSuccessLoginLogOut() throws IOException, HttpException {
 
-        HttpResponse response = Login("POST", "user00001", "passwd00001");
+        HttpResponse response = Login("POST", "user00022", "passwd00022");
 
         //200
         assertEquals( HttpStatus.SC_OK, response.getStatusLine().getStatusCode() );

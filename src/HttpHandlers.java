@@ -44,6 +44,7 @@ public class HttpHandlers {
             //JSON file to Java object
             User user = mapper.readValue(retSrc, User.class);
 
+
             response.setStatusCode(HttpStatus.SC_OK);
 
             boolean user_found = SqlHelpers.IsUserFound(user.getUsername(), user.getPassword());
@@ -136,9 +137,9 @@ public class HttpHandlers {
                 int limit = 0;
                 if(params.containsKey("sortBy"))
                     sortBy = params.get("sortBy");
-                if(params.containsKey("asc"))
-                    if(params.get("asc").equals("false"))
-                        asc = false;
+                    sortBy = ( sortBy == "id" || sortBy == "author" || sortBy == "title") ? sortBy : "";
+                if(params.containsKey("order"))
+                    asc = (params.get("order") == "desc" ) ? false : true;
                 BookList bookList = SqlHelpers.LookUpBook(book, limit, sortBy, asc);
                 String jsonString ="";
                 try {
@@ -161,6 +162,7 @@ public class HttpHandlers {
             }else{
                 throw new MethodNotSupportedException("JSON not found");
             }
+
             if(method.equals("POST")){
                 Book book = mapper.readValue(retSrc, Book.class);
                 StringEntity entity = null;
@@ -168,16 +170,12 @@ public class HttpHandlers {
                 if(id == 0){
                     id = SqlHelpers.InsertBook(book);
                     response.setStatusCode(HttpStatus.SC_CREATED);
-                    entity = new StringEntity(
-                            "<html><body></body>HTTP/1.1 201 Created\n" +
-                                    "Location: /books/"+ id +"</html>",
-                            ContentType.create("text/html", "UTF-8"));
+                    response.setHeader("Location", "/books/" + id );
+                    entity = new StringEntity("Location: /books/" + id, ContentType.TEXT_PLAIN);
                 }else{
                     response.setStatusCode(HttpStatus.SC_CONFLICT);
-                    entity = new StringEntity(
-                            "<html><body></body>HTTP/1.1 409 Conflict\n" +
-                                    "Duplicate record: /books/"+ id +"</html>",
-                            ContentType.create("text/html", "UTF-8"));
+                    response.setHeader("Duplicate record", "/books/" + id );
+                    entity = new StringEntity("Duplicate record: /books/"+ id, ContentType.TEXT_PLAIN);
                 }
                 response.setEntity(entity);
                 return;

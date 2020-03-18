@@ -13,9 +13,11 @@ public class GeneralHelpers {
         Map<String, String> map = new HashMap<String, String>();
         for (String param : params)
         {
-            String name = param.split("=")[0];
-            String value = param.split("=")[1];
-            map.put(name, value);
+            if (param.split("=").length == 2 ) {
+                String name = param.split("=")[0];
+                String value = param.split("=")[1];
+                map.put(name, value);
+            }
         }
         return map;
     }
@@ -39,17 +41,12 @@ public class GeneralHelpers {
     }
 
     public static int GetBookIdFromUrl(String url){
-        int id = 0;
-        Pattern pattern = Pattern.compile("books*?");
-        Matcher matcher = pattern.matcher(url);
-        while (matcher.find()) {
-            try{
-                id = Integer.parseInt(matcher.group(1));
-            }catch (NumberFormatException nfe)
-            {
-            }
-        }
-        return id;
+        try {
+            var arr1 = url.split("/");
+            String valStr = arr1[arr1.length - 1].split("\\?")[0];
+            int id = Integer.parseInt(valStr);
+            return id;
+        } catch (NumberFormatException e){ e.printStackTrace(); return 0; }
     }
 
     public static Book GetBookFromParams(Map<String, String> params){

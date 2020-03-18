@@ -5,10 +5,10 @@ import java.sql.SQLException;
 public class SqlSingleton {
     private static SqlSingleton obj;
 
-    private static String username = "sqlUser";
-    private static String password = "sqlUserPwd10000";
+    private static String username = DBConnectionKeys.username;
+    private static String password = DBConnectionKeys.password;
+    private static String connectionString = DBConnectionKeys.address;
 
-    private static String connectionString = "jdbc:mysql://ec2-18-163-3-251.ap-east-1.compute.amazonaws.com/LBM?autoReconnect=true&useUnicode=yes";
 
     private Connection connection;
     // private constructor to force use of
@@ -30,6 +30,9 @@ public class SqlSingleton {
                     obj = new SqlSingleton();
                     try {
                         obj.connection = DriverManager.getConnection(connectionString, username, password);
+                        obj.connection.setAutoCommit(true);
+                        if (obj.connection.isValid(1000)){ System.out.println("Connection is Valid");}
+                        else { System.out.println("Connection inValid"); }
                     } catch (SQLException e) {
 
                         e.printStackTrace();
