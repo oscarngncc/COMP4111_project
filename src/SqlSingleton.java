@@ -5,10 +5,10 @@ import java.sql.SQLException;
 public class SqlSingleton {
     private static SqlSingleton obj;
 
-    private static String username = DBConnectionKeys.username;
-    private static String password = DBConnectionKeys.password;
-    private static String connectionString = DBConnectionKeys.address;
+    private static String username = "sqlUser";
+    private static String password = "sqlUserPwd10000";
 
+    private static String connectionString = "jdbc:mysql://ec2-18-162-194-78.ap-east-1.compute.amazonaws.com/LBM";
 
     private Connection connection;
     // private constructor to force use of
@@ -17,8 +17,7 @@ public class SqlSingleton {
 
     }
 
-    public static Connection getConnection()
-    {
+    public static Connection getConnection() throws SQLException {
         if (obj==null)
         {
             // To make thread safe
@@ -28,16 +27,15 @@ public class SqlSingleton {
                 // can reach above step
                 if (obj==null) {
                     obj = new SqlSingleton();
-                    try {
-                        obj.connection = DriverManager.getConnection(connectionString, username, password);
-                        obj.connection.setAutoCommit(true);
-                        if (obj.connection.isValid(1000)){ System.out.println("Connection is Valid");}
-                        else { System.out.println("Connection inValid"); }
-                    } catch (SQLException e) {
-
-                        e.printStackTrace();
-                    }
                 }
+            }
+        }
+        if(obj.connection == null){
+            try {
+                obj.connection = DriverManager.getConnection(connectionString, username, password);
+                obj.connection.setAutoCommit(true);
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
         }
         return obj.connection;

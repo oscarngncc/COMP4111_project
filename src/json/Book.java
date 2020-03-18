@@ -1,10 +1,11 @@
 package json;
 
+import com.fasterxml.jackson.annotation.JsonFilter;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
+@JsonIgnoreProperties(value = { "bookId" })
 public class Book {
-    @JsonProperty("Book")
-    private int bookId;
+    private int bookId = 0;
 
     public int getBookId() {
         return bookId;
@@ -59,7 +60,8 @@ public class Book {
     }
 
     @JsonProperty("Available")
-    private Boolean available;
+    @JsonFilter("resultFilter")
+    private Boolean available = null;
 
     public Boolean getAvailable() {
         return available;
