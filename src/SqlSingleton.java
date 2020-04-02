@@ -5,10 +5,9 @@ import java.sql.SQLException;
 public class SqlSingleton {
     private static SqlSingleton obj;
 
-    private static String username = "sqlUser";
-    private static String password = "sqlUserPwd10000";
-
-    private static String connectionString = "jdbc:mysql://ec2-18-162-194-78.ap-east-1.compute.amazonaws.com/LBM";
+    static private final String connectionString = "jdbc:mysql://localhost:3306/lbm";
+    static private final String username = "root";
+    static private final String password = "MySQLCOMP4111";
 
     private Connection connection;
     // private constructor to force use of

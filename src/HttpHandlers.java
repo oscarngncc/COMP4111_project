@@ -155,6 +155,17 @@ public class HttpHandlers {
                 return;
             }
 
+
+            if(method.equals("DELETE")){
+                int id = GeneralHelpers.GetBookIdFromUrl(request.getRequestLine().getUri());
+                if(!SqlHelpers.DeleteBook(id)){
+                    response.setStatusCode(HttpStatus.SC_NOT_FOUND);
+                }
+                return;
+            }
+
+
+            /** Check if JSON body exist */
             String retSrc;
             if (request instanceof HttpEntityEnclosingRequest) {
                 HttpEntity entity = ((HttpEntityEnclosingRequest) request).getEntity();
@@ -181,9 +192,9 @@ public class HttpHandlers {
                 return;
             }
 
-            int id = GeneralHelpers.GetBookIdFromUrl(request.getRequestLine().getUri());
 
             if(method.equals("PUT")){
+                int id = GeneralHelpers.GetBookIdFromUrl(request.getRequestLine().getUri());
                 int status = 0;
                 Availability availability = mapper.readValue(retSrc,Availability.class);
                 if (!availability.isAvailable()){
@@ -195,13 +206,6 @@ public class HttpHandlers {
                 switch (status){
                     case 10 : response.setStatusCode(HttpStatus.SC_NOT_FOUND);
                     case 15 : response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
-                }
-                return;
-            }
-
-            if(method.equals("DELETE")){
-                if(!SqlHelpers.DeleteBook(id)){
-                    response.setStatusCode(HttpStatus.SC_NOT_FOUND);
                 }
                 return;
             }
@@ -258,7 +262,8 @@ public class HttpHandlers {
             mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
             Transaction transaction = mapper.readValue(retSrc, Transaction.class);
 
-            boolean transaction_found = SqlHelpers.IsTransactionIdFound(transaction.getTransactionId());
+            //boolean transaction_found = SqlHelpers.IsTransactionIdFound(transaction.getTransactionId());
+            boolean transaction_found = false;
             if(!transaction_found){
                 response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                 return;

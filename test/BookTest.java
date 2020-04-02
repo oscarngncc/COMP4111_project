@@ -54,17 +54,23 @@ class BookTest {
 
     @BeforeAll
     static public void init(){
-        serverThread = new Thread(()->{
-            try {
-                System.out.println("Server started");
-                String[] args = {};
-                HttpServerHost.main(args);
-            } catch (Exception e){ e.printStackTrace(); return; }
-        });
-        serverThread.start();
+        try {
+            serverThread = new Thread(() -> {
+                try {
+                    System.out.println("Server started");
+                    String[] args = {};
+                    HttpServerHost.main(args);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return;
+                }
+            });
+            serverThread.start();
+        } catch (Exception e ){ System.out.println("Something is wrong starting the server");   e.printStackTrace();  }
     }
 
 
+    /******* User00009 Login *********/
     @BeforeEach
     public void initEach() throws IOException, HttpException {
 
@@ -109,6 +115,8 @@ class BookTest {
     }
 
 
+
+    /******* LogOut *********/
     @AfterEach
     public void closeEach() throws IOException, HttpException {
         if (!conn.isOpen()){
@@ -125,6 +133,7 @@ class BookTest {
 
         conn.close();
     }
+
 
 
     /******* Books-Related-Operation *********/
@@ -155,9 +164,8 @@ class BookTest {
 
 
     //Return Response body
-    //Set id = -1 if you don't wish to include it for searching
-    public HttpResponse LookBook(@Nullable String title, @Nullable String author, int id, @Nullable SortBy sortBy,
-                           @Nullable Order order, int limit ) throws IOException, HttpException{
+    public HttpResponse LookBook(@Nullable String title, @Nullable String author, @Nullable  Integer id, @Nullable SortBy sortBy,
+                           @Nullable Order order, @Nullable Integer limit ) throws IOException, HttpException{
         if (!conn.isOpen()){
             conn.bind(new Socket(host.getHostName(), host.getPort()));
         }
@@ -167,13 +175,15 @@ class BookTest {
             url = url + "title=" + title + "&";
         if ( author != null )
             url = url + "author=" + author + "&";
-        if ( id > -1 )
+        if ( id != null )
             url = url + "id=" + id + "&";
-        if ( limit > -1 )
+        if ( limit != null )
             url = url + "limit=" + id + "&";
-        if ( sortBy != null & order != null )
+        if ( sortBy != null && order != null )
             url = url + "sortby=" + sortBy.s + "order=" + order.s + "&";
         url = url + "token=" + userToken;
+
+        System.out.println("The lookUP Url is as follows: " + url );
 
         HttpRequest request = new BasicHttpRequest("GET", url, HttpVersion.HTTP_1_1);
         httpexecutor.preProcess(request, httpproc, coreContext);
@@ -184,6 +194,7 @@ class BookTest {
         conn.close();
         return response;
     }
+
 
     //availability = true for loaning
     public HttpResponse loanOrReturnBook( int id, boolean availability ) throws IOException, HttpException{
@@ -225,19 +236,72 @@ class BookTest {
     }
 
 
-
     @Test
     public void addAndDeleteABook() throws IOException, HttpException {
         HttpResponse response = AddBook("Onion adventure", "Oscar", "Oscar Ltd", 2020);
         assertEquals(HttpStatus.SC_CREATED, response.getStatusLine().getStatusCode());
+        assertTrue(response.getHeaders("Location")[0].getValue().contains("/books/") );
 
         var arr = responseBody.split("/");
         int id = Integer.parseInt(arr[arr.length-1]);
-        System.out.println("id is " + id);
 
         var response2 = deleteBook(id);
         assertEquals(HttpStatus.SC_OK,  response2.getStatusLine().getStatusCode());
     }
+
+
+    @Test
+    public void addRedundantBook() throws IOException, HttpException {
+        HttpResponse response = AddBook("Tim Cook Recipe", "Tim", "AppleJuice Ltd", 2010);
+        assertEquals(HttpStatus.SC_CREATED, response.getStatusLine().getStatusCode());
+        assertTrue(response.getHeaders("Location")[0].getValue().contains("/books/") );
+
+        var arr = responseBody.split("/");
+        int id = Integer.parseInt(arr[arr.length-1]);
+
+        HttpResponse response2 = AddBook("Tim Cook Recipe", "Tim", "AppleJuice Ltd", 2010);
+        assertEquals(HttpStatus.SC_CONFLICT, response2.getStatusLine().getStatusCode());
+        assertTrue(response2.getHeaders("Duplicate record")[0].getValue().contains("/books/") );
+
+        var response3 = deleteBook(id);
+        assertEquals(HttpStatus.SC_OK,  response3.getStatusLine().getStatusCode());
+    }
+
+
+    @Test
+    public void lookForBooks() throws IOException, HttpException {
+
+        /** Peform Adding of 10 books */
+        int [] bookIDs = new int[10];
+        for ( int i = 0; i < 10; i++ ){
+            String title = "bookTitle" + i % 5 ;
+            String author = "";
+            if (i < 3 ){author = "Oscar"; }
+            else if (i == 4 ){author = "JoJo"; }
+            else author = "Mary";
+            String publisher = (i < 4 ) ? "HKUST" : "Oscar Ltd";
+            int year = 2000 + i;
+
+            HttpResponse response = AddBook(title, author, publisher, year);
+            assertEquals(HttpStatus.SC_CREATED, response.getStatusLine().getStatusCode());
+            var arr = responseBody.split("/");
+            int id = Integer.parseInt(arr[arr.length-1]);
+            bookIDs[i] = id;
+        }
+
+        /**No Content*/
+        HttpResponse noContentResponse = LookBook("dummy", "ShouldNOTEXist", null, null, null, null);
+        assertEquals(HttpStatus.SC_NO_CONTENT, noContentResponse.getStatusLine().getStatusCode());
+
+
+        /** Perform Deletion */
+        for ( int i = 0; i < 10; i++ ){
+            HttpResponse response = deleteBook(bookIDs[i]);
+            assertEquals(HttpStatus.SC_OK,  response.getStatusLine().getStatusCode());
+        }
+
+    }
+
 
 
 

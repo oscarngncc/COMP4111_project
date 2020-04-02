@@ -167,7 +167,7 @@ public class SqlHelpers {
                     sqlStatement += " AND ";
                     isFirstCritera = false;
                 }
-                sqlStatement += "YEAR LIKE '%" + book.getYear() + "%'";
+                sqlStatement += "YEAR = " + book.getYear();
             }
             if(book.getAvailable() != null){
                 if(!isFirstCritera){
@@ -184,6 +184,7 @@ public class SqlHelpers {
                 }
             }
             sqlStatement = sqlStatement + ";";
+            System.out.println("The SQL lookUP statement is:\n" + sqlStatement );
             ResultSet results = command.executeQuery(sqlStatement);
             int count = 0;
             while (results.next() && (count < limit || limit == 0)) {
