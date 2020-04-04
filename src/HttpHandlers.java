@@ -31,46 +31,41 @@ public class HttpHandlers {
             if (!method.equals("POST")) {
                 throw new MethodNotSupportedException(method + " method not supported");
             }
-            try {
-                String retSrc;
-                if (request instanceof HttpEntityEnclosingRequest) {
-                    HttpEntity entity = ((HttpEntityEnclosingRequest) request).getEntity();
-                    retSrc = EntityUtils.toString(entity);
-                } else {
-                    throw new MethodNotSupportedException("JSON not found");
-                }
+            String retSrc;
+            if (request instanceof HttpEntityEnclosingRequest) {
+                HttpEntity entity = ((HttpEntityEnclosingRequest) request).getEntity();
+                retSrc = EntityUtils.toString(entity);
+            }else{
+                throw new MethodNotSupportedException("JSON not found");
+            }
 
-                ObjectMapper mapper = new ObjectMapper();
-                mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-                //JSON file to Java object
-                User user = mapper.readValue(retSrc, User.class);
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            //JSON file to Java object
+            User user = mapper.readValue(retSrc, User.class);
 
 
-                response.setStatusCode(HttpStatus.SC_OK);
+            response.setStatusCode(HttpStatus.SC_OK);
 
-                boolean user_found = SqlHelpers.IsUserFound(user.getUsername(), user.getPassword());
-                if (!user_found) {
-                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
-                    return;
-                }
-
-                boolean token_found = SqlHelpers.IsUserTokenFound(user.getUsername().substring(4));
-                if (token_found) {
-                    response.setStatusCode(HttpStatus.SC_CONFLICT);
-                    return;
-                }
-
-                String token = GeneralHelpers.GenerateToken(user.getUsername().substring(4));
-
-                SqlHelpers.InsertToken(token);
-                StringEntity entity = new StringEntity(
-                        "{\"Token\": \"" + token + "\"}",
-                        ContentType.create("application/json", Consts.UTF_8));
-                response.setEntity(entity);
-            }catch(Exception e){
+            boolean user_found = SqlHelpers.IsUserFound(user.getUsername(), user.getPassword());
+            if(!user_found){
                 response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                 return;
             }
+
+            boolean token_found = SqlHelpers.IsUserTokenFound(user.getUsername().substring(4));
+            if(token_found){
+                response.setStatusCode(HttpStatus.SC_CONFLICT);
+                return;
+            }
+
+            String token = GeneralHelpers.GenerateToken(user.getUsername().substring(4));
+
+            SqlHelpers.InsertToken(token);
+            StringEntity entity = new StringEntity(
+                    "{\"Token\": \"" + token + "\"}",
+                    ContentType.create("application/json", Consts.UTF_8));
+            response.setEntity(entity);
         }
     }
 
@@ -89,20 +84,17 @@ public class HttpHandlers {
             if (!method.equals("GET")) {
                 throw new MethodNotSupportedException(method + " method not supported");
             }
-            try {
-                response.setStatusCode(HttpStatus.SC_OK);
 
-                Map<String, String> params = GeneralHelpers.GetParamsMap(request.getRequestLine().getUri());
-                String token = params.get("token");
+            response.setStatusCode(HttpStatus.SC_OK);
 
-                boolean token_found = SqlHelpers.IsTokenFound(token);
+            Map<String, String> params = GeneralHelpers.GetParamsMap(request.getRequestLine().getUri());
+            String token = params.get("token");
 
-                if (token_found) {
-                    SqlHelpers.DeleteToken(token);
-                } else {
-                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
-                }
-            }catch (Exception e){
+            boolean token_found = SqlHelpers.IsTokenFound(token);
+
+            if(token_found) {
+                SqlHelpers.DeleteToken(token);
+            }else{
                 response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
             }
         }
@@ -140,42 +132,44 @@ public class HttpHandlers {
 
             if(method.equals("GET")){
                 try {
-                    Book book = GeneralHelpers.GetBookFromParams(params);
-                    String sortBy = "";
-                    boolean asc = true;
-                    int limit = 0;
-
-                    if (params.containsKey("limit")) {
-                        if (Integer.parseInt(params.get("limit")) > 0)
-                            limit = Integer.parseInt(params.get("limit"));
+                    String retSrc;
+                    if (request instanceof HttpEntityEnclosingRequest) {
+                        HttpEntity entity = ((HttpEntityEnclosingRequest) request).getEntity();
+                        retSrc = EntityUtils.toString(entity);
+                    } else {
+                        throw new MethodNotSupportedException("JSON not found");
                     }
 
-                    if (params.containsKey("sortby") && params.containsKey("order")) {
-                        sortBy = params.get("sortby");
-                        sortBy = (sortBy.equals("id") || sortBy.equals("author") || sortBy.equals("title")) ? sortBy : "";
-                        asc = (params.get("order").equals("desc")) ? false : true;
-                    }
+                    ObjectMapper mapper = new ObjectMapper();
+                    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+                    //JSON file to Java object
+                    User user = mapper.readValue(retSrc, User.class);
 
-                    BookList bookList = SqlHelpers.LookUpBook(book, limit, sortBy, asc);
 
-                    if (bookList.getFoundBooks() == 0) {
-                        response.setStatusCode(HttpStatus.SC_NO_CONTENT);
+                    response.setStatusCode(HttpStatus.SC_OK);
+
+                    boolean user_found = SqlHelpers.IsUserFound(user.getUsername(), user.getPassword());
+                    if (!user_found) {
+                        response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                         return;
                     }
 
-                    String jsonString = "";
-                    try {
-                        jsonString = mapper.writeValueAsString(bookList);
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                    boolean token_found = SqlHelpers.IsUserTokenFound(user.getUsername().substring(4));
+                    if (token_found) {
+                        response.setStatusCode(HttpStatus.SC_CONFLICT);
+                        return;
                     }
+
+                    String token = GeneralHelpers.GenerateToken(user.getUsername().substring(4));
+
+                    SqlHelpers.InsertToken(token);
                     StringEntity entity = new StringEntity(
-                            jsonString,
+                            "{\"Token\": \"" + token + "\"}",
                             ContentType.create("application/json", Consts.UTF_8));
                     response.setEntity(entity);
-                    return;
                 }catch(Exception e){
-                    response.setStatusCode(HttpStatus.SC_NO_CONTENT);
+                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                    return;
                 }
             }
 
@@ -206,7 +200,8 @@ public class HttpHandlers {
                     id = SqlHelpers.InsertBook(book);
                     response.setStatusCode(HttpStatus.SC_CREATED);
                     response.setHeader("Location", "/books/" + id );
-                    entity = new StringEntity("Location: /books/" + id, ContentType.TEXT_PLAIN);
+                    String entityText = "http://localhost:8080/BookManagementService/books/" + id + "?token=" + token;
+                    entity = new StringEntity(entityText, ContentType.TEXT_PLAIN);
                 }else{
                     response.setStatusCode(HttpStatus.SC_CONFLICT);
                     response.setHeader("Duplicate record", "/books/" + id );
@@ -228,7 +223,7 @@ public class HttpHandlers {
                     status = SqlHelpers.ReturnBook(id);
                 }
                 switch (status){
-                    case 10 : response.setStatusCode(HttpStatus.SC_NOT_FOUND); break;
+                    case 10 : response.setStatusLine(new ProtocolVersion("HTTP", 1, 1), 404, "No book record"); break;
                     case 15 : response.setStatusCode(HttpStatus.SC_BAD_REQUEST); break;
                     case 20: response.setStatusCode(HttpStatus.SC_OK); break;
                 }
