@@ -44,15 +44,21 @@ CREATE TABLE L_BOOK (
 
 CREATE USER 'sqlUser'@'%' IDENTIFIED BY 'sqlUserPwd10000';
 
-GRANT SELECT ON performance_schema.threads TO 'sqlUser'@'%';
-
 GRANT SELECT ON LBM.L_USER TO 'sqlUser'@'%';
 
 GRANT SELECT, INSERT, DELETE, UPDATE ON LBM.L_TOKEN TO 'sqlUser'@'%';
 
+GRANT SELECT, INSERT, DELETE, UPDATE ON LBM.L_TRANSACTION TO 'sqlUser'@'%';
+
 GRANT SELECT, INSERT, DELETE ON LBM.L_BOOK TO 'sqlUser'@'%';
 
 flush privileges;
+
+ALTER TABLE L_TRANSACTION ENGINE=MyISAM;
+
+SET GLOBAL event_scheduler = ON;
+
+SET GLOBAL wait_timeout=120;
 
 #Create 100 users
 DELIMITER $$
@@ -60,7 +66,7 @@ CREATE PROCEDURE populate (IN num int)
 BEGIN
 DECLARE i int DEFAULT 1;
 WHILE i <= num do
-CREATE USER CONCAT('user',LPAD(i, 3, 0))@'%' IDENTIFIED BY CONCAT('pass',LPAD(i, 3, 0));
+INSERT INTO L_USER (USERNAME,PASSWORD) VALUES (CONCAT('user',LPAD(i, 3, 0)),CONCAT('pass',LPAD(i, 3, 0)));
 SET i = i + 1;
 END WHILE;
 END
@@ -72,15 +78,12 @@ CALL populate(100);
 DROP PROCEDURE populate;
 
 #Delect Transaction > 2 mins, every sec checking
-SET GLOBAL event_scheduler = ON;
+
 DELIMITER $$
 CREATE EVENT delete_transaction
 ON SCHEDULE EVERY 1 SECOND
 DO BEGIN
-      DELETE FROM L_TRANSACTION WHERE CREATE_TIME <= TIMESTAMPADD(MINUTE,-15,NOW());
+      DELETE FROM L_TRANSACTION WHERE CREATE_TIME <= TIMESTAMPADD(MINUTE,-2,NOW());
 END;
 $$
 DELIMITER ;
-
-SET GLOBAL connect_timeout=120;
-SET GLOBAL wait_timeout=120;
