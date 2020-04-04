@@ -173,7 +173,7 @@ public class HttpHandlers {
             if(method.equals("DELETE")){
                 int id = GeneralHelpers.GetBookIdFromUrl(request.getRequestLine().getUri());
                 if(!SqlHelpers.DeleteBook(id)){
-                    response.setStatusLine(new ProtocolVersion("HTTP", 1, 1), 404, "No Book Record");
+                    response.setStatusLine(new ProtocolVersion("HTTP", 1, 1), 404, "No book record");
                 }
                 return;
             }
@@ -196,7 +196,8 @@ public class HttpHandlers {
                     id = SqlHelpers.InsertBook(book);
                     response.setStatusCode(HttpStatus.SC_CREATED);
                     response.setHeader("Location", "/books/" + id );
-                    entity = new StringEntity("Location: /books/" + id, ContentType.TEXT_PLAIN);
+                    String entityText = "http://localhost:8080/BookManagementService/books/" + id + "?token=" + token;
+                    entity = new StringEntity(entityText, ContentType.TEXT_PLAIN);
                 }else{
                     response.setStatusCode(HttpStatus.SC_CONFLICT);
                     response.setHeader("Duplicate record", "/books/" + id );
@@ -218,7 +219,7 @@ public class HttpHandlers {
                     status = SqlHelpers.ReturnBook(id);
                 }
                 switch (status){
-                    case 10 : response.setStatusLine(new ProtocolVersion("HTTP", 1, 1), 404, "No Book Record"); break;
+                    case 10 : response.setStatusLine(new ProtocolVersion("HTTP", 1, 1), 404, "No book record"); break;
                     case 15 : response.setStatusCode(HttpStatus.SC_BAD_REQUEST); break;
                     case 20: response.setStatusCode(HttpStatus.SC_OK); break;
                 }
