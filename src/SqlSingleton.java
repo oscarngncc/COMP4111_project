@@ -5,9 +5,9 @@ import java.sql.SQLException;
 public class SqlSingleton {
     private static SqlSingleton obj;
 
-    static private final String connectionString = "jdbc:mysql://localhost:3306/lbm";
-    static private final String username = "root";
-    static private final String password = "MySQLCOMP4111";
+    private static String connectionString = "jdbc:mysql://localhost:3306/LBM";
+    private static String username = "sqlUser";
+    private static String password = "sqlUserPwd10000";
 
     private Connection connection;
     // private constructor to force use of
@@ -16,6 +16,9 @@ public class SqlSingleton {
 
     }
 
+    public static void setConnection(String connectionStringInput) {
+        connectionString = connectionStringInput;
+    }
     public static Connection getConnection() throws SQLException {
         if (obj==null)
         {

@@ -12,6 +12,8 @@ import org.apache.http.impl.bootstrap.ServerBootstrap;
 public class HttpServerHost {
 
     public static void main(String[] args) throws Exception {
+        if(args.length > 0)
+            SqlSingleton.setConnection(args[0]);
 
         int port = 8080;
 

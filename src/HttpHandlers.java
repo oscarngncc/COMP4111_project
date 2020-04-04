@@ -31,41 +31,46 @@ public class HttpHandlers {
             if (!method.equals("POST")) {
                 throw new MethodNotSupportedException(method + " method not supported");
             }
-            String retSrc;
-            if (request instanceof HttpEntityEnclosingRequest) {
-                HttpEntity entity = ((HttpEntityEnclosingRequest) request).getEntity();
-                retSrc = EntityUtils.toString(entity);
-            }else{
-                throw new MethodNotSupportedException("JSON not found");
-            }
+            try {
+                String retSrc;
+                if (request instanceof HttpEntityEnclosingRequest) {
+                    HttpEntity entity = ((HttpEntityEnclosingRequest) request).getEntity();
+                    retSrc = EntityUtils.toString(entity);
+                } else {
+                    throw new MethodNotSupportedException("JSON not found");
+                }
 
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            //JSON file to Java object
-            User user = mapper.readValue(retSrc, User.class);
+                ObjectMapper mapper = new ObjectMapper();
+                mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+                //JSON file to Java object
+                User user = mapper.readValue(retSrc, User.class);
 
 
-            response.setStatusCode(HttpStatus.SC_OK);
+                response.setStatusCode(HttpStatus.SC_OK);
 
-            boolean user_found = SqlHelpers.IsUserFound(user.getUsername(), user.getPassword());
-            if(!user_found){
+                boolean user_found = SqlHelpers.IsUserFound(user.getUsername(), user.getPassword());
+                if (!user_found) {
+                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                    return;
+                }
+
+                boolean token_found = SqlHelpers.IsUserTokenFound(user.getUsername().substring(4));
+                if (token_found) {
+                    response.setStatusCode(HttpStatus.SC_CONFLICT);
+                    return;
+                }
+
+                String token = GeneralHelpers.GenerateToken(user.getUsername().substring(4));
+
+                SqlHelpers.InsertToken(token);
+                StringEntity entity = new StringEntity(
+                        "{\"Token\": \"" + token + "\"}",
+                        ContentType.create("application/json", Consts.UTF_8));
+                response.setEntity(entity);
+            }catch(Exception e){
                 response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                 return;
             }
-
-            boolean token_found = SqlHelpers.IsUserTokenFound(user.getUsername().substring(4));
-            if(token_found){
-                response.setStatusCode(HttpStatus.SC_CONFLICT);
-                return;
-            }
-
-            String token = GeneralHelpers.GenerateToken(user.getUsername().substring(4));
-
-            SqlHelpers.InsertToken(token);
-            StringEntity entity = new StringEntity(
-                    "{\"Token\": \"" + token + "\"}",
-                    ContentType.create("application/json", Consts.UTF_8));
-            response.setEntity(entity);
         }
     }
 
@@ -84,17 +89,20 @@ public class HttpHandlers {
             if (!method.equals("GET")) {
                 throw new MethodNotSupportedException(method + " method not supported");
             }
+            try {
+                response.setStatusCode(HttpStatus.SC_OK);
 
-            response.setStatusCode(HttpStatus.SC_OK);
+                Map<String, String> params = GeneralHelpers.GetParamsMap(request.getRequestLine().getUri());
+                String token = params.get("token");
 
-            Map<String, String> params = GeneralHelpers.GetParamsMap(request.getRequestLine().getUri());
-            String token = params.get("token");
+                boolean token_found = SqlHelpers.IsTokenFound(token);
 
-            boolean token_found = SqlHelpers.IsTokenFound(token);
-
-            if(token_found) {
-                SqlHelpers.DeleteToken(token);
-            }else{
+                if (token_found) {
+                    SqlHelpers.DeleteToken(token);
+                } else {
+                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                }
+            }catch (Exception e){
                 response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
             }
         }
@@ -131,42 +139,44 @@ public class HttpHandlers {
             mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
             if(method.equals("GET")){
-                Book book = GeneralHelpers.GetBookFromParams(params);
-                String sortBy = "";
-                boolean asc = true;
-                int limit = 0;
-
-                if (params.containsKey("limit")){
-                    if ( Integer.parseInt(params.get("limit")) > 0 )
-                        limit = Integer.parseInt(params.get("limit"));
-                }
-
-                if(params.containsKey("sortby") && params.containsKey("order") ) {
-                    System.out.println("YESSSSSSSSSSSSSSSSSSSSSS " + params.get("sortby") );
-                    sortBy = params.get("sortby");
-                    sortBy = (sortBy.equals("id")  || sortBy.equals("author") || sortBy.equals("title") ) ? sortBy : "";
-                    asc = ( params.get("order").equals("desc") ) ? false : true;
-                }
-
-                BookList bookList = SqlHelpers.LookUpBook(book, limit, sortBy, asc);
-
-                if (bookList.getFoundBooks() == 0 ){
-                    response.setStatusCode(HttpStatus.SC_NO_CONTENT);
-                    return;
-                }
-
-                String jsonString ="";
                 try {
-                    jsonString = mapper.writeValueAsString(bookList);
+                    Book book = GeneralHelpers.GetBookFromParams(params);
+                    String sortBy = "";
+                    boolean asc = true;
+                    int limit = 0;
+
+                    if (params.containsKey("limit")) {
+                        if (Integer.parseInt(params.get("limit")) > 0)
+                            limit = Integer.parseInt(params.get("limit"));
+                    }
+
+                    if (params.containsKey("sortby") && params.containsKey("order")) {
+                        sortBy = params.get("sortby");
+                        sortBy = (sortBy.equals("id") || sortBy.equals("author") || sortBy.equals("title")) ? sortBy : "";
+                        asc = (params.get("order").equals("desc")) ? false : true;
+                    }
+
+                    BookList bookList = SqlHelpers.LookUpBook(book, limit, sortBy, asc);
+
+                    if (bookList.getFoundBooks() == 0) {
+                        response.setStatusCode(HttpStatus.SC_NO_CONTENT);
+                        return;
+                    }
+
+                    String jsonString = "";
+                    try {
+                        jsonString = mapper.writeValueAsString(bookList);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    StringEntity entity = new StringEntity(
+                            jsonString,
+                            ContentType.create("application/json", Consts.UTF_8));
+                    response.setEntity(entity);
+                    return;
+                }catch(Exception e){
+                    response.setStatusCode(HttpStatus.SC_NO_CONTENT);
                 }
-                catch (IOException e) {
-                    e.printStackTrace();
-                }
-                StringEntity entity = new StringEntity(
-                        jsonString,
-                        ContentType.create("application/json", Consts.UTF_8));
-                response.setEntity(entity);
-                return;
             }
 
 

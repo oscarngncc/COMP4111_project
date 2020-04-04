@@ -296,7 +296,8 @@ public class SqlHelpers {
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            command.execute("INSERT INTO L_TRANSACTION (TRANSACTION_ID, CREATE_TIME) VALUES ('" + transactionId + "', NOW());");
+            command.execute(""
+            );
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -308,12 +309,7 @@ public class SqlHelpers {
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            command.execute(
-                    "UPDATE L_TRANSACTION SET BOOK_ID = " +
-                            transaction.getBookId()+", ACTION = '" +
-                            transaction.getAction() + "' WHERE TRANSACTION_ID = '" +
-                            transaction.getTransactionId() +"'"+
-                            ";"
+            command.execute(""
             );
             return true;
         } catch (SQLException e) {
@@ -327,9 +323,7 @@ public class SqlHelpers {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
             ResultSet results = command.executeQuery(
-                    "SELECT BOOK_ID, ACTION FROM L_TRANSACTION WHERE TRANSACTION_ID = '" +
-                            transactionId +
-                            "';"
+                  ""
             );
             int status = 0;
             results.next();
@@ -355,7 +349,7 @@ public class SqlHelpers {
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            command.execute("DELETE FROM L_TRANSACTION WHERE TRANSACTION_ID = '" + transactionId + "';");
+            command.execute("");
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
