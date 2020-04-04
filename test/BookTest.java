@@ -1,4 +1,4 @@
-import com.mysql.fabric.Response;
+
 import org.apache.http.*;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
@@ -247,7 +247,7 @@ class BookTest {
         assertTrue(response.getHeaders("Location")[0].getValue().contains("/books/") );
 
         var arr = responseBody.split("/");
-        int id = Integer.parseInt(arr[arr.length-1]);
+        int id = Integer.parseInt(arr[arr.length-1].split("\\?")[0]);
 
         var response2 = deleteBook(id);
         assertEquals(HttpStatus.SC_OK,  response2.getStatusLine().getStatusCode());
@@ -267,7 +267,7 @@ class BookTest {
         assertTrue(response.getHeaders("Location")[0].getValue().contains("/books/") );
 
         var arr = responseBody.split("/");
-        int id = Integer.parseInt(arr[arr.length-1]);
+        int id = Integer.parseInt(arr[arr.length-1].split("\\?")[0]);
 
         HttpResponse response2 = AddBook("Tim Cook Recipe", "Tim", "AppleJuice Ltd", 2010);
         assertEquals(HttpStatus.SC_CONFLICT, response2.getStatusLine().getStatusCode());
@@ -295,7 +295,7 @@ class BookTest {
             HttpResponse response = AddBook(title, author, publisher, year);
             assertEquals(HttpStatus.SC_CREATED, response.getStatusLine().getStatusCode());
             var arr = responseBody.split("/");
-            int id = Integer.parseInt(arr[arr.length-1]);
+            int id = Integer.parseInt(arr[arr.length-1].split("\\?")[0]);
             bookIDs[i] = id;
         }
 
@@ -348,7 +348,7 @@ class BookTest {
         assertEquals(HttpStatus.SC_CREATED, response.getStatusLine().getStatusCode());
         assertTrue(response.getHeaders("Location")[0].getValue().contains("/books/") );
         var arr = responseBody.split("/");
-        int id = Integer.parseInt(arr[arr.length-1]);
+        int id = Integer.parseInt(arr[arr.length-1].split("\\?")[0] );
 
         /** Loan a Book */
         response = loanOrReturnBook(id, false);

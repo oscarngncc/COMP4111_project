@@ -25,9 +25,8 @@ CREATE TABLE L_TOKEN (
 
 #Create Table for Transaction
 CREATE TABLE L_TRANSACTION (
-    TRANSACTION_ID varchar(12) PRIMARY KEY,
-    BOOK_ID INT,
-    ACTION varchar(6),
+    TRANSACTION_ID INT PRIMARY KEY,
+    TOKEN varchar(12) NOT NULL,
     CREATE_TIME DATETIME NOT NULL
 ) ;
 
@@ -45,9 +44,7 @@ CREATE TABLE L_BOOK (
 
 CREATE USER 'sqlUser'@'%' IDENTIFIED BY 'sqlUserPwd10000';
 
-CREATE USER 'lbmAdmin'@'%' IDENTIFIED BY 'lbmAdminPwd';
-
-GRANT ALL ON LBM.* TO 'lbmAdmin'@'%';
+GRANT SELECT ON performance_schema.threads TO 'sqlUser'@'%';
 
 GRANT SELECT ON LBM.L_USER TO 'sqlUser'@'%';
 
@@ -63,7 +60,7 @@ CREATE PROCEDURE populate (IN num int)
 BEGIN
 DECLARE i int DEFAULT 1;
 WHILE i <= num do
-INSERT INTO L_USER (USERNAME,PASSWORD) VALUES (CONCAT('user',LPAD(i, 3, 0)),CONCAT('pass',LPAD(i, 3, 0)));
+CREATE USER CONCAT('user',LPAD(i, 3, 0))@'%' IDENTIFIED BY CONCAT('pass',LPAD(i, 3, 0));
 SET i = i + 1;
 END WHILE;
 END
@@ -73,3 +70,17 @@ DELIMITER ;
 CALL populate(100);
 
 DROP PROCEDURE populate;
+
+#Delect Transaction > 2 mins, every sec checking
+SET GLOBAL event_scheduler = ON;
+DELIMITER $$
+CREATE EVENT delete_transaction
+ON SCHEDULE EVERY 1 SECOND
+DO BEGIN
+      DELETE FROM L_TRANSACTION WHERE CREATE_TIME <= TIMESTAMPADD(MINUTE,-15,NOW());
+END;
+$$
+DELIMITER ;
+
+SET GLOBAL connect_timeout=120;
+SET GLOBAL wait_timeout=120;

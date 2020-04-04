@@ -5,7 +5,7 @@ import java.sql.SQLException;
 public class SqlSingleton {
     private static SqlSingleton obj;
 
-    private static String connectionString = "jdbc:mysql://localhost:3306/LBM";
+    private static String connectionString = "jdbc:mysql://localhost:3306/lbm";
     private static String username = "sqlUser";
     private static String password = "sqlUserPwd10000";
 
