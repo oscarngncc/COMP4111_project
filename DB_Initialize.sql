@@ -12,10 +12,10 @@ CREATE DATABASE LBM;
 #Goto Database
 Use LBM;
 
-#Create Tabor user
+#Create Table user
 CREATE TABLE L_USER (
-    USERNAME varchar(9) PRIMARY KEY,
-    PASSWORD varchar(11) NOT NULL
+    USERNAME varchar(7) PRIMARY KEY,
+    PASSWORD varchar(7) NOT NULL
 );
 
 #Create Table for token
@@ -45,40 +45,31 @@ CREATE TABLE L_BOOK (
 
 CREATE USER 'sqlUser'@'%' IDENTIFIED BY 'sqlUserPwd10000';
 
+CREATE USER 'lbmAdmin'@'%' IDENTIFIED BY 'lbmAdminPwd';
+
+GRANT ALL ON LBM.* TO 'lbmAdmin'@'%';
+
 GRANT SELECT ON LBM.L_USER TO 'sqlUser'@'%';
 
 GRANT SELECT, INSERT, DELETE, UPDATE ON LBM.L_TOKEN TO 'sqlUser'@'%';
-
-GRANT SELECT, INSERT, DELETE, UPDATE ON LBM.L_TRANSACTION TO 'sqlUser'@'%';
 
 GRANT SELECT, INSERT, DELETE ON LBM.L_BOOK TO 'sqlUser'@'%';
 
 flush privileges;
 
-#Create 10000 users
+#Create 100 users
 DELIMITER $$
 CREATE PROCEDURE populate (IN num int)
 BEGIN
 DECLARE i int DEFAULT 1;
 WHILE i <= num do
-INSERT INTO L_USER_NEW (USERNAME,PASSWORD) VALUES (CONCAT('user',LPAD(i, 5, 0)),CONCAT('passwd',LPAD(i, 5, 0)));
+INSERT INTO L_USER (USERNAME,PASSWORD) VALUES (CONCAT('user',LPAD(i, 3, 0)),CONCAT('pass',LPAD(i, 3, 0)));
 SET i = i + 1;
 END WHILE;
 END
 $$
 DELIMITER ;
 
-CALL populate(10000);
+CALL populate(100);
 
 DROP PROCEDURE populate;
-
-#Delect Transaction > 2 mins, every sec checking
-SET GLOBAL event_scheduler = ON;
-DELIMITER $$
-CREATE EVENT delete_transaction
-ON SCHEDULE EVERY 1 SECOND
-DO BEGIN
-      DELETE FROM L_TRANSACTION WHERE CREATE_TIME <= TIMESTAMPADD(MINUTE,-15,NOW());
-END;
-$$
-DELIMITER ;
