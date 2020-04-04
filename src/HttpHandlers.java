@@ -31,41 +31,46 @@ public class HttpHandlers {
             if (!method.equals("POST")) {
                 throw new MethodNotSupportedException(method + " method not supported");
             }
-            String retSrc;
-            if (request instanceof HttpEntityEnclosingRequest) {
-                HttpEntity entity = ((HttpEntityEnclosingRequest) request).getEntity();
-                retSrc = EntityUtils.toString(entity);
-            }else{
-                throw new MethodNotSupportedException("JSON not found");
-            }
+            try {
+                String retSrc;
+                if (request instanceof HttpEntityEnclosingRequest) {
+                    HttpEntity entity = ((HttpEntityEnclosingRequest) request).getEntity();
+                    retSrc = EntityUtils.toString(entity);
+                } else {
+                    throw new MethodNotSupportedException("JSON not found");
+                }
 
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            //JSON file to Java object
-            User user = mapper.readValue(retSrc, User.class);
+                ObjectMapper mapper = new ObjectMapper();
+                mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+                //JSON file to Java object
+                User user = mapper.readValue(retSrc, User.class);
 
 
-            response.setStatusCode(HttpStatus.SC_OK);
+                response.setStatusCode(HttpStatus.SC_OK);
 
-            boolean user_found = SqlHelpers.IsUserFound(user.getUsername(), user.getPassword());
-            if(!user_found){
+                boolean user_found = SqlHelpers.IsUserFound(user.getUsername(), user.getPassword());
+                if (!user_found) {
+                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                    return;
+                }
+
+                boolean token_found = SqlHelpers.IsUserTokenFound(user.getUsername().substring(4));
+                if (token_found) {
+                    response.setStatusCode(HttpStatus.SC_CONFLICT);
+                    return;
+                }
+
+                String token = GeneralHelpers.GenerateToken(user.getUsername().substring(4));
+
+                SqlHelpers.InsertToken(token);
+                StringEntity entity = new StringEntity(
+                        "{\"Token\": \"" + token + "\"}",
+                        ContentType.create("application/json", Consts.UTF_8));
+                response.setEntity(entity);
+            }catch(Exception e){
                 response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                 return;
             }
-
-            boolean token_found = SqlHelpers.IsUserTokenFound(user.getUsername().substring(4));
-            if(token_found){
-                response.setStatusCode(HttpStatus.SC_CONFLICT);
-                return;
-            }
-
-            String token = GeneralHelpers.GenerateToken(user.getUsername().substring(4));
-
-            SqlHelpers.InsertToken(token);
-            StringEntity entity = new StringEntity(
-                    "{\"Token\": \"" + token + "\"}",
-                    ContentType.create("application/json", Consts.UTF_8));
-            response.setEntity(entity);
         }
     }
 
@@ -84,18 +89,22 @@ public class HttpHandlers {
             if (!method.equals("GET")) {
                 throw new MethodNotSupportedException(method + " method not supported");
             }
+            try {
+                response.setStatusCode(HttpStatus.SC_OK);
 
-            response.setStatusCode(HttpStatus.SC_OK);
+                Map<String, String> params = GeneralHelpers.GetParamsMap(request.getRequestLine().getUri());
+                String token = params.get("token");
 
-            Map<String, String> params = GeneralHelpers.GetParamsMap(request.getRequestLine().getUri());
-            String token = params.get("token");
+                boolean token_found = SqlHelpers.IsTokenFound(token);
 
-            boolean token_found = SqlHelpers.IsTokenFound(token);
-
-            if(token_found) {
-                SqlHelpers.DeleteToken(token);
-            }else{
+                if (token_found) {
+                    SqlHelpers.DeleteToken(token);
+                } else {
+                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                }
+            }catch (Exception e){
                 response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                return;
             }
         }
     }
@@ -118,11 +127,17 @@ public class HttpHandlers {
             }
 
             response.setStatusCode(HttpStatus.SC_OK);
-
-            Map<String, String> params = GeneralHelpers.GetParamsMap(request.getRequestLine().getUri());
-            String token = params.get("token");
-            boolean token_found = SqlHelpers.IsTokenFound(token);
-            if(!token_found) {
+            Map<String, String> params;
+            String token;
+            try{
+                params = GeneralHelpers.GetParamsMap(request.getRequestLine().getUri());
+                token = params.get("token");
+                boolean token_found = SqlHelpers.IsTokenFound(token);
+                if(!token_found) {
+                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                    return;
+                }
+            }catch (Exception e){
                 response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                 return;
             }
@@ -168,18 +183,22 @@ public class HttpHandlers {
                     response.setEntity(entity);
                     return;
                 }catch(Exception e){
-                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                    response.setStatusCode(HttpStatus.SC_NO_CONTENT);
                     return;
                 }
             }
 
 
             if(method.equals("DELETE")){
-                int id = GeneralHelpers.GetBookIdFromUrl(request.getRequestLine().getUri());
-                if(!SqlHelpers.DeleteBook(id)){
+                try{
+                    int id = GeneralHelpers.GetBookIdFromUrl(request.getRequestLine().getUri());
+                    if(!SqlHelpers.DeleteBook(id)){
+                        response.setStatusLine(new ProtocolVersion("HTTP", 1, 1), 404, "No book record");
+                    }
+                    return;
+                }catch(Exception e) {
                     response.setStatusLine(new ProtocolVersion("HTTP", 1, 1), 404, "No book record");
                 }
-                return;
             }
 
 
@@ -213,21 +232,31 @@ public class HttpHandlers {
 
 
             if(method.equals("PUT")){
-                int id = GeneralHelpers.GetBookIdFromUrl(request.getRequestLine().getUri());
-                int status = 0;
-                Availability availability = mapper.readValue(retSrc,Availability.class);
-                if (!availability.isAvailable()){
-                    status = SqlHelpers.LoanBook(id, false);
+                try {
+                    int id = GeneralHelpers.GetBookIdFromUrl(request.getRequestLine().getUri());
+                    int status = 0;
+                    Availability availability = mapper.readValue(retSrc, Availability.class);
+                    if (!availability.isAvailable()) {
+                        status = SqlHelpers.LoanBook(id, false);
+                    }
+                    if (availability.isAvailable()) {
+                        status = SqlHelpers.ReturnBook(id, false);
+                    }
+                    switch (status) {
+                        case 10:
+                            response.setStatusLine(new ProtocolVersion("HTTP", 1, 1), 404, "No book record");
+                            break;
+                        case 15:
+                            response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                            break;
+                        case 20:
+                            response.setStatusCode(HttpStatus.SC_OK);
+                            break;
+                    }
+                    return;
+                }catch (Exception e){
+                    response.setStatusLine(new ProtocolVersion("HTTP", 1, 1), 404, "No book record");
                 }
-                if (availability.isAvailable()){
-                    status = SqlHelpers.ReturnBook(id, false);
-                }
-                switch (status){
-                    case 10 : response.setStatusLine(new ProtocolVersion("HTTP", 1, 1), 404, "No book record"); break;
-                    case 15 : response.setStatusCode(HttpStatus.SC_BAD_REQUEST); break;
-                    case 20: response.setStatusCode(HttpStatus.SC_OK); break;
-                }
-                return;
             }
         }
     }
@@ -248,74 +277,81 @@ public class HttpHandlers {
             if (!method.equals("POST") && !method.equals("PUT")) {
                 throw new MethodNotSupportedException(method + " method not supported");
             }
+            try {
+                response.setStatusCode(HttpStatus.SC_OK);
 
-            response.setStatusCode(HttpStatus.SC_OK);
-
-            Map<String, String> params = GeneralHelpers.GetParamsMap(request.getRequestLine().getUri());
-            String token = params.get("token");
-            boolean token_found = SqlHelpers.IsTokenFound(token);
-            if (!token_found) {
-                response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
-                return;
-            }
-            boolean isEmptyBody = false;
-            String retSrc = null;
-            if (request instanceof HttpEntityEnclosingRequest) {
-                HttpEntity entity = ((HttpEntityEnclosingRequest) request).getEntity();
-                retSrc = EntityUtils.toString(entity);
-            } else {
-                isEmptyBody = true;
-            }
-            if (isEmptyBody || retSrc.isEmpty()){
-                if (method.equals("POST")) {
-                    // Generate new tranaction id
-                    int transactionId = SqlHelpers.InsertTransaction();
-                    if (transactionId > 0) {
-                        StringEntity entity = new StringEntity(
-                                "{\"Transaction\": \"" + transactionId + "\"}",
-                                ContentType.create("application/json", Consts.UTF_8));
-                        response.setEntity(entity);
+                Map<String, String> params = GeneralHelpers.GetParamsMap(request.getRequestLine().getUri());
+                String token = params.get("token");
+                boolean token_found = SqlHelpers.IsTokenFound(token);
+                if (!token_found) {
+                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                    return;
+                }
+                boolean isEmptyBody = false;
+                String retSrc = null;
+                if (request instanceof HttpEntityEnclosingRequest) {
+                    HttpEntity entity = ((HttpEntityEnclosingRequest) request).getEntity();
+                    retSrc = EntityUtils.toString(entity);
+                } else {
+                    isEmptyBody = true;
+                }
+                if (isEmptyBody || retSrc.isEmpty()) {
+                    if (method.equals("POST")) {
+                        // Generate new tranaction id
+                        int transactionId = SqlHelpers.InsertTransaction(token);
+                        if (transactionId == 0) {
+                            response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                            return;
+                        }
+                        if (transactionId > 0) {
+                            StringEntity entity = new StringEntity(
+                                    "{\"Transaction\": \"" + transactionId + "\"}",
+                                    ContentType.create("application/json", Consts.UTF_8));
+                            response.setEntity(entity);
+                        } else {
+                            response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                        }
                     } else {
                         response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                     }
                     return;
-                } else {
+                }
+
+                ObjectMapper mapper = new ObjectMapper();
+                mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+                Transaction transaction = mapper.readValue(retSrc, Transaction.class);
+
+                int transactionIdStatus = SqlHelpers.IsTransactionIdFound(transaction.getTransactionId(), token);
+                if (transactionIdStatus != 20) {
                     response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                     return;
                 }
-            }
 
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            Transaction transaction = mapper.readValue(retSrc, Transaction.class);
+                if (method.equals("POST")) {
+                    if (transaction.getOperation().toUpperCase().equals("COMMIT")) {
+                        if (!SqlHelpers.CommitTransaction()) {
+                            response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                        }
+                        return;
+                    }
+                    if (transaction.getOperation().toUpperCase().equals("CANCEL")) {
+                        if (!SqlHelpers.CancelTransaction()) {
+                            response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                        }
+                        return;
+                    }
+                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                    return;
+                }
 
-            boolean transaction_found = SqlHelpers.IsTransactionIdFound(transaction.getTransactionId());
-            if(!transaction_found){
-                response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
-                return;
-            }
-
-            if(method.equals("POST")){
-                if(transaction.getOperation().toUpperCase().equals("COMMIT")){
-                    if (!SqlHelpers.CommitTransaction()){
+                if (method.equals("PUT")) {
+                    if (!SqlHelpers.UpdateTransaction(transaction)) {
                         response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                     }
                     return;
                 }
-                if(transaction.getOperation().toUpperCase().equals("CANCEL")){
-                    if (!SqlHelpers.CancelTransaction()){
-                        response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
-                    }
-                    return;
-                }
+            }catch(Exception e){
                 response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
-                return;
-            }
-
-            if(method.equals("PUT")){
-                if(!SqlHelpers.UpdateTransaction(transaction)){
-                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
-                }
                 return;
             }
         }

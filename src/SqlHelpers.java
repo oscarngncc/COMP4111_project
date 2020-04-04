@@ -312,12 +312,10 @@ public class SqlHelpers {
         return false;
     }
 
-    public static int InsertTransaction (){
+    public static int InsertTransaction (String token){
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            command.execute("ROLLBACK;");
-            command.execute("START TRANSACTION;");
             ResultSet results = command.executeQuery("SELECT connection_id();");
             int transactionId = 0;
             if (!results.next()) {
@@ -327,7 +325,14 @@ public class SqlHelpers {
                 transactionId = results.getInt(1);
             }
             results.close();
-            return transactionId;
+            if(IsTransactionIdFound(transactionId,"") == 10){
+                command.execute("ROLLBACK;");
+                command.execute("INSERT INTO L_TRANSACTION VALUES(connection_id(),'"+token+"',NOW());");
+                command.execute("START TRANSACTION;");
+                return transactionId;
+            }else{
+                return 0;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -347,6 +352,7 @@ public class SqlHelpers {
             if(status != 20){
                 return false;
             }
+            command.execute("UPDATE L_TRANSACTION SET CREATE_TIME=NOW() WHERE TRANSACTION_ID = connection_id();");
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -359,6 +365,7 @@ public class SqlHelpers {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
             command.execute("COMMIT;");
+            command.execute("DELETE FROM L_TRANSACTION WHERE TRANSACTION_ID = connection_id();");
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -371,6 +378,7 @@ public class SqlHelpers {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
             command.execute("ROLLBACK;");
+            command.execute("DELETE FROM L_TRANSACTION WHERE TRANSACTION_ID = connection_id();");
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -378,7 +386,7 @@ public class SqlHelpers {
         return false;
     }
 
-    public static boolean IsTransactionIdFound (int transactionId){
+    public static int IsTransactionIdFound (int transactionId, String token){
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
@@ -388,15 +396,30 @@ public class SqlHelpers {
             }
             else{
                 int correctId = results.getInt(1);
-                results.close();
-                if(correctId == transactionId){
-                    return true;
+                if(correctId != transactionId){
+                    return 5;
                 }
             }
-            return false;
+            results = command.executeQuery(
+                    "SELECT * FROM L_TRANSACTION WHERE TRANSACTION_ID = "+
+                            transactionId +
+                            ";");
+            if (!results.next()) {
+                return 10;
+            }
+            results = command.executeQuery(
+                    "SELECT * FROM L_TRANSACTION WHERE TRANSACTION_ID = "+
+                            transactionId + " AND TOKEN = '" + token + "'" +
+                            ";");
+            if (!results.next()) {
+                results.close();
+                return 15;
+            }
+            results.close();
+            return 20;
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return false;
+        return 0;
     }
 }
