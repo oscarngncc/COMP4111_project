@@ -173,7 +173,7 @@ public class HttpHandlers {
             if(method.equals("DELETE")){
                 int id = GeneralHelpers.GetBookIdFromUrl(request.getRequestLine().getUri());
                 if(!SqlHelpers.DeleteBook(id)){
-                    response.setStatusCode(HttpStatus.SC_NOT_FOUND);
+                    response.setStatusLine(new ProtocolVersion("HTTP", 1, 1), 404, "No Book Record");
                 }
                 return;
             }
@@ -218,7 +218,7 @@ public class HttpHandlers {
                     status = SqlHelpers.ReturnBook(id);
                 }
                 switch (status){
-                    case 10 : response.setStatusCode(HttpStatus.SC_NOT_FOUND); break;
+                    case 10 : response.setStatusLine(new ProtocolVersion("HTTP", 1, 1), 404, "No Book Record"); break;
                     case 15 : response.setStatusCode(HttpStatus.SC_BAD_REQUEST); break;
                     case 20: response.setStatusCode(HttpStatus.SC_OK); break;
                 }
@@ -228,6 +228,7 @@ public class HttpHandlers {
     }
 
 
+    /** Need fix */
     static class HttpTransactionHandler implements HttpRequestHandler {
 
         public HttpTransactionHandler() {
@@ -258,20 +259,23 @@ public class HttpHandlers {
             if (request instanceof HttpEntityEnclosingRequest) {
                 HttpEntity entity = ((HttpEntityEnclosingRequest) request).getEntity();
                 retSrc = EntityUtils.toString(entity);
-            }else{
-                if(method.equals("POST")){
-                    // Generate new tranaction id
-                    String transactionId = GeneralHelpers.GenerateTransactionId(token.substring(0,5));
-                    SqlHelpers.InsertTransaction(transactionId);
-                    StringEntity entity = new StringEntity(
-                            "{\"Transaction\": \"" + transactionId + "\"}",
-                            ContentType.create("application/json", Consts.UTF_8));
-                    response.setEntity(entity);
-                }else {
-                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
-                }
+            }
+            else if (! method.equals("POST")) {
+                throw new MethodNotSupportedException("JSON not found");
+            }
+
+
+            if(method.equals("POST") && (retSrc == null || retSrc.equals("") ) ){
+                // Generate new tranaction id
+                String transactionId = GeneralHelpers.GenerateTransactionId(token.substring(0,5));
+                SqlHelpers.InsertTransaction(transactionId);
+                StringEntity entity = new StringEntity(
+                        "{\"Transaction\":" + transactionId + "}",
+                        ContentType.create("application/json", Consts.UTF_8));
+                response.setEntity(entity);
                 return;
             }
+
 
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);

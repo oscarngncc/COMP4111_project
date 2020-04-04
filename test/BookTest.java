@@ -70,7 +70,7 @@ class BookTest {
     }
 
 
-    /******* User00009 Login *********/
+    /******* User009 Login *********/
     @BeforeEach
     public void initEach() throws IOException, HttpException {
 
@@ -256,7 +256,7 @@ class BookTest {
     @Test
     public  void deleteUnExistedBook() throws IOException, HttpException {
         var response = deleteBook(-10);
-        assertEquals(HttpStatus.SC_NOT_FOUND,  response.getStatusLine().getStatusCode());
+        assertEquals(404,  response.getStatusLine().getStatusCode());
     }
 
 
@@ -376,11 +376,11 @@ class BookTest {
     public void loanAndReturnUnexistedBook() throws IOException, HttpException {
         /** Loan a book that doesn't exist */
         var response = loanOrReturnBook(-3, false);
-        assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusLine().getStatusCode() );
+        assertEquals(404, response.getStatusLine().getStatusCode() );
 
         /** Return a Book that doesn't exist */
         response = loanOrReturnBook(-3, true);
-        assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusLine().getStatusCode() );
+        assertEquals(404, response.getStatusLine().getStatusCode() );
     }
 
 

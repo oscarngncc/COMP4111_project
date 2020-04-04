@@ -31,6 +31,7 @@ class TransactionTest {
     int userNum;
     String userToken;
     String responseBody;
+    int transactionID = -1;
 
     @BeforeAll
     static public void init(){
@@ -50,7 +51,7 @@ class TransactionTest {
     }
 
 
-    /******* User00009 Login *********/
+    /******* User008 Login *********/
     @BeforeEach
     public void initEach() throws IOException, HttpException {
 
@@ -74,7 +75,7 @@ class TransactionTest {
             conn.bind(socket);
         }
         //userNum = (int)(Math.random() * 8) + 1;
-        userNum = 9;
+        userNum = 8;
         String username = "user00" + Integer.toString(userNum) ;
         String password = "pass00" +  Integer.toString(userNum);
         String jsonBody = "{\"Username\": \"" + username + "\",\"Password\": \"" + password + "\"}";
@@ -116,9 +117,35 @@ class TransactionTest {
 
 
     @Test
-    public void test() throws IOException, HttpException {
+    public void empty(){
 
     }
+
+
+    @Test
+    public void requestID() throws IOException, HttpException {
+        if (!conn.isOpen()){
+            Socket socket = new Socket(host.getHostName(), host.getPort());
+            conn.bind(socket);
+        }
+
+        var request = new BasicHttpRequest("POST", "/BookManagementService/transaction?token=" + userToken, HttpVersion.HTTP_1_1);
+
+        httpexecutor.preProcess(request, httpproc, coreContext);
+        HttpResponse response = httpexecutor.execute(request, conn, coreContext);
+        httpexecutor.postProcess(response, httpproc, coreContext);
+
+        responseBody = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+        var arr = responseBody.split("\"");
+        System.out.println(responseBody);
+        transactionID = Integer.parseInt(arr[3]);
+
+        conn.close();
+        assertTrue( transactionID >= 0 );
+    }
+
+
+
 
 
 }
