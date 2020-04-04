@@ -43,17 +43,17 @@ CREATE TABLE L_BOOK (
 
 #Create an user from any host, not recommended, replace % with our server when it is provided
 
-CREATE USER 'sqlUser'@'%' IDENTIFIED BY 'sqlUserPwd10000';
+CREATE USER 'sqlUser'@'localhost' IDENTIFIED BY 'sqlUserPwd10000';
 
-CREATE USER 'lbmAdmin'@'%' IDENTIFIED BY 'lbmAdminPwd';
+CREATE USER 'lbmAdmin'@'localhost' IDENTIFIED BY 'lbmAdminPwd';
 
-GRANT ALL ON LBM.* TO 'lbmAdmin'@'%';
+GRANT ALL ON LBM.* TO 'lbmAdmin'@'localhost';
 
-GRANT SELECT ON LBM.L_USER TO 'sqlUser'@'%';
+GRANT SELECT ON LBM.L_USER TO 'sqlUser'@'localhost';
 
-GRANT SELECT, INSERT, DELETE, UPDATE ON LBM.L_TOKEN TO 'sqlUser'@'%';
+GRANT SELECT, INSERT, DELETE, UPDATE ON LBM.L_TOKEN TO 'sqlUser'@'localhost';
 
-GRANT SELECT, INSERT, DELETE ON LBM.L_BOOK TO 'sqlUser'@'%';
+GRANT SELECT, INSERT, DELETE ON LBM.L_BOOK TO 'sqlUser'@'localhost';
 
 flush privileges;
 
