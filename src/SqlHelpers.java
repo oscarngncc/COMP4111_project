@@ -144,29 +144,29 @@ public class SqlHelpers {
             if(!book.getTitle().equals("")){
                 if(!isFirstCritera){
                     sqlStatement += " AND ";
-                    isFirstCritera = false;
                 }
+                isFirstCritera = false;
                 sqlStatement += "TITLE LIKE '%" + book.getTitle() + "%'";
             }
             if(!book.getAuthor().equals("")){
                 if(!isFirstCritera){
                     sqlStatement += " AND ";
-                    isFirstCritera = false;
                 }
+                isFirstCritera = false;
                 sqlStatement += "AUTHOR LIKE '%" + book.getAuthor() + "%'";
             }
             if(!book.getPublisher().equals("")){
                 if(!isFirstCritera){
                     sqlStatement += " AND ";
-                    isFirstCritera = false;
                 }
+                isFirstCritera = false;
                 sqlStatement += "PUBLISHER LIKE '%" + book.getPublisher() + "%'";
             }
             if(!book.getYear().equals("")){
                 if(!isFirstCritera){
                     sqlStatement += " AND ";
-                    isFirstCritera = false;
                 }
+                isFirstCritera = false;
                 sqlStatement += "YEAR = " + book.getYear();
             }
             if(book.getAvailable() != null){
@@ -183,7 +183,14 @@ public class SqlHelpers {
                     sqlStatement += " DESC";
                 }
             }
+
+            //Remove "WHERE" in the statement if no condition
+            if (sqlStatement.substring(sqlStatement.length() - 7).equals(" WHERE ")){
+                sqlStatement =sqlStatement.substring(0, sqlStatement.length() - 7);
+            }
+
             sqlStatement = sqlStatement + ";";
+
             System.out.println("The SQL lookUP statement is:\n" + sqlStatement );
             ResultSet results = command.executeQuery(sqlStatement);
             int count = 0;
@@ -216,15 +223,18 @@ public class SqlHelpers {
                             id +
                             ";"
             );
+
             if (!results.next()) {
                 results.close();
                 return 10;
-            } else {
-                if (!results.getBoolean(1)){
-                    return 15;
-                }
+            }
+            else if (!results.getBoolean(1)){
+                return 15;
+            }
+            else {
                 results.close();
             }
+
             command.execute("UPDATE L_BOOK SET AVAILABLE = 0 WHERE ID = " + id + ";");
             return 20;
         } catch (SQLException e) {

@@ -25,16 +25,16 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-enum SortBy{
+enum Order{
     asc("asc"), desc("desc");
     public String s;
-    SortBy(String s){this.s = s;}
+    Order(String s){this.s = s;}
 }
 
-enum Order{
+enum SortBy{
     id("id"), author("author"), title("title");
     public String s;
-    Order(String s){this.s = s;}
+    SortBy(String s){this.s = s;}
 }
 
 
@@ -157,7 +157,9 @@ class BookTest {
         HttpResponse response = httpexecutor.execute(request, conn, coreContext);
         httpexecutor.postProcess(response, httpproc, coreContext);
 
-        responseBody = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+        if (response.getEntity() != null )
+            responseBody = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+        else responseBody = "";
         conn.close();
         return response;
     }
@@ -178,19 +180,21 @@ class BookTest {
         if ( id != null )
             url = url + "id=" + id + "&";
         if ( limit != null )
-            url = url + "limit=" + id + "&";
+            url = url + "limit=" + limit + "&";
         if ( sortBy != null && order != null )
-            url = url + "sortby=" + sortBy.s + "order=" + order.s + "&";
+            url = url + "sortby=" + sortBy.s + "&" + "order=" + order.s + "&";
         url = url + "token=" + userToken;
 
-        System.out.println("The lookUP Url is as follows: " + url );
+        System.out.println("\nThe lookUP Url is as follows: " + url );
 
         HttpRequest request = new BasicHttpRequest("GET", url, HttpVersion.HTTP_1_1);
         httpexecutor.preProcess(request, httpproc, coreContext);
         HttpResponse response = httpexecutor.execute(request, conn, coreContext);
         httpexecutor.postProcess(response, httpproc, coreContext);
 
-        responseBody = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+        if (response.getEntity() != null )
+            responseBody = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+        else responseBody = "";
         conn.close();
         return response;
     }
@@ -249,6 +253,12 @@ class BookTest {
         assertEquals(HttpStatus.SC_OK,  response2.getStatusLine().getStatusCode());
     }
 
+    @Test
+    public  void deleteUnExistedBook() throws IOException, HttpException {
+        var response = deleteBook(-10);
+        assertEquals(HttpStatus.SC_NOT_FOUND,  response.getStatusLine().getStatusCode());
+    }
+
 
     @Test
     public void addRedundantBook() throws IOException, HttpException {
@@ -289,8 +299,36 @@ class BookTest {
             bookIDs[i] = id;
         }
 
+        /** Find Book*/
+        var bookResponse = LookBook(null, "Oscar", null, null, null, null );
+        assertEquals(HttpStatus.SC_OK, bookResponse.getStatusLine().getStatusCode());
+        assertTrue(responseBody.contains("\"FoundBooks\":3"));
+
+        /** Find Book with no statement */
+        bookResponse = LookBook(null, null, null, null, null, null );
+        assertEquals(HttpStatus.SC_OK, bookResponse.getStatusLine().getStatusCode());
+        assertTrue(responseBody.contains("FoundBooks"));
+
+
+        /** Find Book with id order*/
+        bookResponse = LookBook("bookTitle", "Oscar", null, SortBy.id, Order.desc, null );
+        assertEquals(HttpStatus.SC_OK, bookResponse.getStatusLine().getStatusCode() );
+
+
+        /** Find Book with lower limit*/
+        bookResponse = LookBook("bookTitle", "Oscar", null, null, null, 2 );
+        assertEquals(HttpStatus.SC_OK, bookResponse.getStatusLine().getStatusCode());
+        assertTrue(responseBody.contains("\"FoundBooks\":2"));
+
+
+        /** Find Book with upper limit*/
+        bookResponse = LookBook("bookTitle", "Oscar", null, null, null, 7 );
+        assertEquals(HttpStatus.SC_OK, bookResponse.getStatusLine().getStatusCode());
+        assertTrue(responseBody.contains("\"FoundBooks\":3"));
+
+
         /**No Content*/
-        HttpResponse noContentResponse = LookBook("dummy", "ShouldNOTEXist", null, null, null, null);
+        var noContentResponse = LookBook("dummy", "ShouldNOTEXist", null, null, null, null);
         assertEquals(HttpStatus.SC_NO_CONTENT, noContentResponse.getStatusLine().getStatusCode());
 
 
@@ -302,6 +340,48 @@ class BookTest {
 
     }
 
+
+    @Test
+    public void loanAndReturnBook() throws IOException, HttpException{
+        /** Add a Book */
+        HttpResponse response = AddBook("Onion adventure", "OscarNg", "Oscar Ltd", 2020);
+        assertEquals(HttpStatus.SC_CREATED, response.getStatusLine().getStatusCode());
+        assertTrue(response.getHeaders("Location")[0].getValue().contains("/books/") );
+        var arr = responseBody.split("/");
+        int id = Integer.parseInt(arr[arr.length-1]);
+
+        /** Loan a Book */
+        response = loanOrReturnBook(id, false);
+        assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode() );
+
+        /** Loan the same book again */
+        response = loanOrReturnBook(id, false);
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusLine().getStatusCode() );
+
+        /** Return a Book */
+        response = loanOrReturnBook(id, true);
+        assertEquals(HttpStatus.SC_OK, response.getStatusLine().getStatusCode() );
+
+        /** Return a Book that is loaned */
+        response = loanOrReturnBook(id, true);
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusLine().getStatusCode() );
+
+        /** Delete the Book */
+        response = deleteBook(id);
+        assertEquals(HttpStatus.SC_OK,  response.getStatusLine().getStatusCode());
+    }
+
+
+    @Test
+    public void loanAndReturnUnexistedBook() throws IOException, HttpException {
+        /** Loan a book that doesn't exist */
+        var response = loanOrReturnBook(-3, false);
+        assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusLine().getStatusCode() );
+
+        /** Return a Book that doesn't exist */
+        response = loanOrReturnBook(-3, true);
+        assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusLine().getStatusCode() );
+    }
 
 
 

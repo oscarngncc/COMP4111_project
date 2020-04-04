@@ -135,12 +135,26 @@ public class HttpHandlers {
                 String sortBy = "";
                 boolean asc = true;
                 int limit = 0;
-                if(params.containsKey("sortBy"))
-                    sortBy = params.get("sortBy");
-                    sortBy = ( sortBy == "id" || sortBy == "author" || sortBy == "title") ? sortBy : "";
-                if(params.containsKey("order"))
-                    asc = (params.get("order") == "desc" ) ? false : true;
+
+                if (params.containsKey("limit")){
+                    if ( Integer.parseInt(params.get("limit")) > 0 )
+                        limit = Integer.parseInt(params.get("limit"));
+                }
+
+                if(params.containsKey("sortby") && params.containsKey("order") ) {
+                    System.out.println("YESSSSSSSSSSSSSSSSSSSSSS " + params.get("sortby") );
+                    sortBy = params.get("sortby");
+                    sortBy = (sortBy.equals("id")  || sortBy.equals("author") || sortBy.equals("title") ) ? sortBy : "";
+                    asc = ( params.get("order").equals("desc") ) ? false : true;
+                }
+
                 BookList bookList = SqlHelpers.LookUpBook(book, limit, sortBy, asc);
+
+                if (bookList.getFoundBooks() == 0 ){
+                    response.setStatusCode(HttpStatus.SC_NO_CONTENT);
+                    return;
+                }
+
                 String jsonString ="";
                 try {
                     jsonString = mapper.writeValueAsString(bookList);
@@ -204,8 +218,9 @@ public class HttpHandlers {
                     status = SqlHelpers.ReturnBook(id);
                 }
                 switch (status){
-                    case 10 : response.setStatusCode(HttpStatus.SC_NOT_FOUND);
-                    case 15 : response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                    case 10 : response.setStatusCode(HttpStatus.SC_NOT_FOUND); break;
+                    case 15 : response.setStatusCode(HttpStatus.SC_BAD_REQUEST); break;
+                    case 20: response.setStatusCode(HttpStatus.SC_OK); break;
                 }
                 return;
             }
@@ -225,7 +240,7 @@ public class HttpHandlers {
                 final HttpContext context) throws HttpException, IOException {
 
             String method = request.getRequestLine().getMethod().toUpperCase(Locale.ROOT);
-            if (!method.equals("POST") && !method.equals("PuT")) {
+            if (!method.equals("POST") && !method.equals("PUT")) {
                 throw new MethodNotSupportedException(method + " method not supported");
             }
 
