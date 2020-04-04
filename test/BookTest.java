@@ -95,8 +95,8 @@ class BookTest {
         }
         //userNum = (int)(Math.random() * 8) + 1;
         userNum = 9;
-        String username = "user0000" + Integer.toString(userNum) ;
-        String password = "passwd0000" +  Integer.toString(userNum);
+        String username = "user00" + Integer.toString(userNum) ;
+        String password = "pass00" +  Integer.toString(userNum);
         String jsonBody = "{\"Username\": \"" + username + "\",\"Password\": \"" + password + "\"}";
         HttpEntity requestEntity = new StringEntity(jsonBody, ContentType.APPLICATION_JSON);
 
