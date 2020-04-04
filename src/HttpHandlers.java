@@ -132,41 +132,41 @@ public class HttpHandlers {
 
             if(method.equals("GET")){
                 try {
-                    String retSrc;
-                    if (request instanceof HttpEntityEnclosingRequest) {
-                        HttpEntity entity = ((HttpEntityEnclosingRequest) request).getEntity();
-                        retSrc = EntityUtils.toString(entity);
-                    } else {
-                        throw new MethodNotSupportedException("JSON not found");
+                    Book book = GeneralHelpers.GetBookFromParams(params);
+                    String sortBy = "";
+                    boolean asc = true;
+                    int limit = 0;
+
+                    if (params.containsKey("limit")){
+                        if ( Integer.parseInt(params.get("limit")) > 0 )
+                            limit = Integer.parseInt(params.get("limit"));
                     }
 
-                    ObjectMapper mapper = new ObjectMapper();
-                    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-                    //JSON file to Java object
-                    User user = mapper.readValue(retSrc, User.class);
+                    if(params.containsKey("sortby") && params.containsKey("order") ) {
+                        sortBy = params.get("sortby").toUpperCase();
+                        sortBy = (sortBy.equals("ID")  || sortBy.equals("AUTHOR") || sortBy.equals("TITLE") ) ? sortBy : "";
+                        asc = ( params.get("order").toUpperCase().equals("DESC") ) ? false : true;
+                    }
 
+                    BookList bookList = SqlHelpers.LookUpBook(book, limit, sortBy, asc);
 
-                    response.setStatusCode(HttpStatus.SC_OK);
-
-                    boolean user_found = SqlHelpers.IsUserFound(user.getUsername(), user.getPassword());
-                    if (!user_found) {
-                        response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                    if (bookList.getFoundBooks() == 0 ){
+                        response.setStatusCode(HttpStatus.SC_NO_CONTENT);
                         return;
                     }
 
-                    boolean token_found = SqlHelpers.IsUserTokenFound(user.getUsername().substring(4));
-                    if (token_found) {
-                        response.setStatusCode(HttpStatus.SC_CONFLICT);
-                        return;
+                    String jsonString ="";
+                    try {
+                        jsonString = mapper.writeValueAsString(bookList);
                     }
-
-                    String token = GeneralHelpers.GenerateToken(user.getUsername().substring(4));
-
-                    SqlHelpers.InsertToken(token);
+                    catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     StringEntity entity = new StringEntity(
-                            "{\"Token\": \"" + token + "\"}",
+                            jsonString,
                             ContentType.create("application/json", Consts.UTF_8));
                     response.setEntity(entity);
+                    return;
                 }catch(Exception e){
                     response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                     return;
@@ -177,7 +177,7 @@ public class HttpHandlers {
             if(method.equals("DELETE")){
                 int id = GeneralHelpers.GetBookIdFromUrl(request.getRequestLine().getUri());
                 if(!SqlHelpers.DeleteBook(id)){
-                    response.setStatusCode(HttpStatus.SC_NOT_FOUND);
+                    response.setStatusLine(new ProtocolVersion("HTTP", 1, 1), 404, "No book record");
                 }
                 return;
             }
@@ -217,10 +217,10 @@ public class HttpHandlers {
                 int status = 0;
                 Availability availability = mapper.readValue(retSrc,Availability.class);
                 if (!availability.isAvailable()){
-                    status = SqlHelpers.LoanBook(id);
+                    status = SqlHelpers.LoanBook(id, false);
                 }
                 if (availability.isAvailable()){
-                    status = SqlHelpers.ReturnBook(id);
+                    status = SqlHelpers.ReturnBook(id, false);
                 }
                 switch (status){
                     case 10 : response.setStatusLine(new ProtocolVersion("HTTP", 1, 1), 404, "No book record"); break;
@@ -254,50 +254,56 @@ public class HttpHandlers {
             Map<String, String> params = GeneralHelpers.GetParamsMap(request.getRequestLine().getUri());
             String token = params.get("token");
             boolean token_found = SqlHelpers.IsTokenFound(token);
-            if(!token_found) {
+            if (!token_found) {
                 response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                 return;
             }
-
+            boolean isEmptyBody = false;
             String retSrc = null;
             if (request instanceof HttpEntityEnclosingRequest) {
                 HttpEntity entity = ((HttpEntityEnclosingRequest) request).getEntity();
                 retSrc = EntityUtils.toString(entity);
-            }else{
-                if(method.equals("POST")){
+            } else {
+                isEmptyBody = true;
+            }
+            if (isEmptyBody || retSrc.isEmpty()){
+                if (method.equals("POST")) {
                     // Generate new tranaction id
-                    String transactionId = GeneralHelpers.GenerateTransactionId(token.substring(0,5));
-                    SqlHelpers.InsertTransaction(transactionId);
-                    StringEntity entity = new StringEntity(
-                            "{\"Transaction\": \"" + transactionId + "\"}",
-                            ContentType.create("application/json", Consts.UTF_8));
-                    response.setEntity(entity);
-                }else {
+                    int transactionId = SqlHelpers.InsertTransaction();
+                    if (transactionId > 0) {
+                        StringEntity entity = new StringEntity(
+                                "{\"Transaction\": \"" + transactionId + "\"}",
+                                ContentType.create("application/json", Consts.UTF_8));
+                        response.setEntity(entity);
+                    } else {
+                        response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                    }
+                    return;
+                } else {
                     response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                    return;
                 }
-                return;
             }
 
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
             Transaction transaction = mapper.readValue(retSrc, Transaction.class);
 
-            //boolean transaction_found = SqlHelpers.IsTransactionIdFound(transaction.getTransactionId());
-            boolean transaction_found = false;
+            boolean transaction_found = SqlHelpers.IsTransactionIdFound(transaction.getTransactionId());
             if(!transaction_found){
                 response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                 return;
             }
 
             if(method.equals("POST")){
-                if(transaction.getOperation().equals("commit")){
-                    if (!SqlHelpers.CommitTransaction(transaction.getTransactionId())){
+                if(transaction.getOperation().toUpperCase().equals("COMMIT")){
+                    if (!SqlHelpers.CommitTransaction()){
                         response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                     }
                     return;
                 }
-                if(transaction.getOperation().equals("cancel")){
-                    if (!SqlHelpers.CancelTransaction(transaction.getTransactionId())){
+                if(transaction.getOperation().toUpperCase().equals("CANCEL")){
+                    if (!SqlHelpers.CancelTransaction()){
                         response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                     }
                     return;

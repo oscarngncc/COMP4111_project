@@ -35,7 +35,6 @@ public class SqlSingleton {
         if(obj.connection == null){
             try {
                 obj.connection = DriverManager.getConnection(connectionString, username, password);
-                obj.connection.setAutoCommit(true);
             } catch (SQLException e) {
                 e.printStackTrace();
             }

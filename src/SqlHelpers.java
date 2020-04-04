@@ -30,7 +30,9 @@ public class SqlHelpers {
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
+            command.execute("ROLLBACK;");
             command.execute("INSERT INTO L_TOKEN (TOKEN) VALUES ('" + token + "');");
+            command.execute("commit;");
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -42,7 +44,9 @@ public class SqlHelpers {
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
+            command.execute("ROLLBACK;");
             command.execute("DELETE FROM L_TOKEN WHERE TOKEN = '" + token + "';");
+            command.execute("commit;");
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -114,7 +118,8 @@ public class SqlHelpers {
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            command.execute(
+            command.execute("ROLLBACK;");
+            command.executeUpdate(
                     "INSERT INTO L_BOOK (TITLE, AUTHOR, PUBLISHER, YEAR) VALUES ('" +
                     book.getTitle() + "','"+
                     book.getAuthor() + "','" +
@@ -122,7 +127,8 @@ public class SqlHelpers {
                     book.getYear()+
                     ");"
             );
-            int id = FindIdenticalBook (book);
+            command.execute("commit;");
+            int id = FindIdenticalBook(book);
             return id;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -185,13 +191,13 @@ public class SqlHelpers {
             }
 
             //Remove "WHERE" in the statement if no condition
-            if (sqlStatement.substring(sqlStatement.length() - 7).equals(" WHERE ")){
-                sqlStatement =sqlStatement.substring(0, sqlStatement.length() - 7);
+            String originalSqlStatement = "SELECT * FROM L_BOOK WHERE ";
+            if (sqlStatement.equals(originalSqlStatement)){
+                sqlStatement = "SELECT * FROM L_BOOK";
             }
 
             sqlStatement = sqlStatement + ";";
 
-            System.out.println("The SQL lookUP statement is:\n" + sqlStatement );
             ResultSet results = command.executeQuery(sqlStatement);
             int count = 0;
             while (results.next() && (count < limit || limit == 0)) {
@@ -214,10 +220,13 @@ public class SqlHelpers {
         return null;
     }
 
-    public static int LoanBook (int id){
+    public static int LoanBook (int id, boolean isTransaction){
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
+            if (!isTransaction){
+                command.execute("ROLLBACK;");
+            };
             ResultSet results = command.executeQuery(
                     "SELECT AVAILABLE FROM L_BOOK WHERE ID = " +
                             id +
@@ -236,6 +245,9 @@ public class SqlHelpers {
             }
 
             command.execute("UPDATE L_BOOK SET AVAILABLE = 0 WHERE ID = " + id + ";");
+            if (!isTransaction){
+                command.execute("commit;");
+            }
             return 20;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -243,10 +255,13 @@ public class SqlHelpers {
         return 0;
     }
 
-    public static int ReturnBook (int id){
+    public static int ReturnBook (int id, boolean isTransaction){
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
+            if (!isTransaction){
+                command.execute("ROLLBACK;");
+            };
             ResultSet results = command.executeQuery(
                     "SELECT AVAILABLE FROM L_BOOK WHERE ID = " +
                             id +
@@ -262,6 +277,9 @@ public class SqlHelpers {
                 results.close();
             }
             command.execute("UPDATE L_BOOK SET AVAILABLE = 1 WHERE ID = " + id + ";");
+            if (!isTransaction){
+                command.execute("ROLLBACK;");
+            };
             return 20;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -273,6 +291,7 @@ public class SqlHelpers {
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
+            command.execute("ROLLBACK;");
             ResultSet results = command.executeQuery(
                     "SELECT * FROM L_BOOK WHERE ID = " +
                             id +
@@ -285,6 +304,7 @@ public class SqlHelpers {
                 results.close();
             }
             command.execute("DELETE FROM L_BOOK WHERE ID = " + id + ";");
+            command.execute("commit;");
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -292,64 +312,41 @@ public class SqlHelpers {
         return false;
     }
 
-    public static boolean InsertTransaction (String transactionId){
+    public static int InsertTransaction (){
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            command.execute(""
-            );
-            return true;
+            command.execute("ROLLBACK;");
+            command.execute("START TRANSACTION;");
+            ResultSet results = command.executeQuery("SELECT connection_id();");
+            int transactionId = 0;
+            if (!results.next()) {
+                results.close();
+            }
+            else{
+                transactionId = results.getInt(1);
+            }
+            results.close();
+            return transactionId;
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return false;
+        return 0;
     }
 
     public static boolean UpdateTransaction (Transaction transaction){
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            command.execute(""
-            );
-            return true;
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public static boolean CommitTransaction (int transactionId){
-        try {
-            Connection connection = SqlSingleton.getConnection();
-            Statement command = connection.createStatement();
-            ResultSet results = command.executeQuery(
-                  ""
-            );
             int status = 0;
-            results.next();
-            int bookId = results.getInt("BOOK_ID");
-            String action = results.getString("ACTION");
-            results.close();
-            if (action.equals("loan")){
-                status = LoanBook(bookId);
-            }else if(action.equals("return")){
-                status = ReturnBook(bookId);
+            if (transaction.getAction().toUpperCase().equals("LOAN")){
+                status = LoanBook(transaction.getBookId(), true);
+            }else if(transaction.getAction().toUpperCase().equals("RETURN")){
+                status = ReturnBook(transaction.getBookId(), true);
             }
-            if(status == 20){
-                CancelTransaction(transactionId);
-                return true;
+            if(status != 20){
+                return false;
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public static boolean CancelTransaction (int transactionId){
-        try {
-            Connection connection = SqlSingleton.getConnection();
-            Statement command = connection.createStatement();
-            command.execute("");
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -357,20 +354,47 @@ public class SqlHelpers {
         return false;
     }
 
-    public static boolean IsTransactionIdFound (String transactionId){
-        try{
-            if(transactionId != null) {
-                Connection connection = SqlSingleton.getConnection();
-                Statement command = connection.createStatement();
-                ResultSet results = command.executeQuery("SELECT * FROM L_TRANSACTION WHERE TRANSACTION_ID = '" + transactionId + "';");
-                if (!results.next()) {
-                    results.close();
-                } else {
-                    results.close();
+    public static boolean CommitTransaction (){
+        try {
+            Connection connection = SqlSingleton.getConnection();
+            Statement command = connection.createStatement();
+            command.execute("COMMIT;");
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public static boolean CancelTransaction (){
+        try {
+            Connection connection = SqlSingleton.getConnection();
+            Statement command = connection.createStatement();
+            command.execute("ROLLBACK;");
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public static boolean IsTransactionIdFound (int transactionId){
+        try {
+            Connection connection = SqlSingleton.getConnection();
+            Statement command = connection.createStatement();
+            ResultSet results = command.executeQuery("SELECT connection_id();");
+            if (!results.next()) {
+                results.close();
+            }
+            else{
+                int correctId = results.getInt(1);
+                results.close();
+                if(correctId == transactionId){
                     return true;
                 }
             }
-        }catch(SQLException e){
+            return false;
+        } catch (SQLException e) {
             e.printStackTrace();
         }
         return false;

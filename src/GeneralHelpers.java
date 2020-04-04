@@ -2,8 +2,6 @@ import json.Book;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class GeneralHelpers {
     public static Map<String, String> GetParamsMap(String url)
@@ -29,15 +27,6 @@ public class GeneralHelpers {
             token = token + (int) (Math.random() * (10));
         }
         return token;
-    }
-
-    public static String GenerateTransactionId(String id)
-    {
-        String tranactionId = id;
-        for (int i = id.length(); i < 12; i++) {
-            tranactionId = tranactionId + (int) (Math.random() * (10));
-        }
-        return tranactionId;
     }
 
     public static int GetBookIdFromUrl(String url){
