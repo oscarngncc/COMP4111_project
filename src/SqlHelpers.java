@@ -372,9 +372,6 @@ public class SqlHelpers {
                 }else if(transaction.getAction().toUpperCase().equals("RETURN")){
                     command.execute("UPDATE L_BOOK SET AVAILABLE = 1 WHERE ID = " + transaction.getBookId() + ";");
                 }
-                if(status != 20){
-                    return false;
-                }
                 return true;
             }
         } catch (SQLException e) {
