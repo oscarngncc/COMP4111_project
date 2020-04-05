@@ -231,7 +231,7 @@ public class HttpHandlers {
                     }
                     //Check if user input sortby and order
                     if(params.containsKey("SORTBY") && params.containsKey("ORDER") ) {
-                        sortBy = params.get("SORTBY");
+                        sortBy = params.get("SORTBY").toUpperCase();
                         sortBy = (sortBy.equals("ID")  ||
                                 sortBy.equals("AUTHOR") ||
                                 sortBy.equals("TITLE") ||

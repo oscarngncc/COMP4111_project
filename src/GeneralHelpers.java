@@ -21,7 +21,7 @@ public class GeneralHelpers {
         {
             if (param.split("=").length == 2 ) {
                 String name = param.split("=")[0].toUpperCase();
-                String value = param.split("=")[1].toUpperCase();
+                String value = param.split("=")[1];
                 map.put(name, value);
             }
         }
