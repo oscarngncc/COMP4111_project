@@ -64,6 +64,7 @@ public class SqlSingleton {
      */
     public static Connection getTransactionConnection(String token) throws SQLException {
         Connection tranConnection = DriverManager.getConnection(connectionString, username, password);
+        tranConnection.setAutoCommit(false);
         Statement command = tranConnection .createStatement();
         command.execute("INSERT INTO L_TRANSACTION VALUES(connection_id(),'"+token+"',NOW());");
         ResultSet results = command.executeQuery("SELECT connection_id();");

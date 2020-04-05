@@ -149,7 +149,6 @@ public class SqlHelpers {
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            command.execute("ROLLBACK;");
             command.executeUpdate(
                     "INSERT INTO L_BOOK (TITLE, AUTHOR, PUBLISHER, YEAR) VALUES ('" +
                     book.getTitle() + "','"+
@@ -247,25 +246,23 @@ public class SqlHelpers {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
             if (!isTransaction){
-                command.execute("ROLLBACK;");
-            };
-            ResultSet results = command.executeQuery(
-                    "SELECT AVAILABLE FROM L_BOOK WHERE ID = " +
-                            id +
-                            ";"
-            );
+                ResultSet results = command.executeQuery(
+                        "SELECT AVAILABLE FROM L_BOOK WHERE ID = " +
+                                id +
+                                ";"
+                );
 
-            if (!results.next()) {
-                results.close();
-                return 10;
+                if (!results.next()) {
+                    results.close();
+                    return 10;
+                }
+                else if (!results.getBoolean(1)){
+                    return 15;
+                }
+                else {
+                    results.close();
+                }
             }
-            else if (!results.getBoolean(1)){
-                return 15;
-            }
-            else {
-                results.close();
-            }
-
             command.execute("UPDATE L_BOOK SET AVAILABLE = 0 WHERE ID = " + id + ";");
             if (!isTransaction){
                 command.execute("commit;");
@@ -286,26 +283,25 @@ public class SqlHelpers {
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            if (!isTransaction){
-                command.execute("ROLLBACK;");
-            };
-            ResultSet results = command.executeQuery(
-                    "SELECT AVAILABLE FROM L_BOOK WHERE ID = " +
-                            id +
-                            ";"
-            );
-            if (!results.next()) {
-                results.close();
-                return 10;
-            } else {
-                if (results.getBoolean(1)){
-                    return 15;
+            if (!isTransaction) {
+                ResultSet results = command.executeQuery(
+                        "SELECT AVAILABLE FROM L_BOOK WHERE ID = " +
+                                id +
+                                ";"
+                );
+                if (!results.next()) {
+                    results.close();
+                    return 10;
+                } else {
+                    if (results.getBoolean(1)) {
+                        return 15;
+                    }
+                    results.close();
                 }
-                results.close();
             }
             command.execute("UPDATE L_BOOK SET AVAILABLE = 1 WHERE ID = " + id + ";");
             if (!isTransaction){
-                command.execute("ROLLBACK;");
+                command.execute("commit;");
             };
             return 20;
         } catch (SQLException e) {
@@ -322,7 +318,6 @@ public class SqlHelpers {
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            command.execute("ROLLBACK;");
             ResultSet results = command.executeQuery(
                     "SELECT * FROM L_BOOK WHERE ID = " +
                             id +
