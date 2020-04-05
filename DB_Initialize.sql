@@ -20,8 +20,7 @@ CREATE TABLE L_USER (
 
 #Create Table for token
 CREATE TABLE L_TOKEN (
-    TOKEN varchar(12) PRIMARY KEY,
-    CONNECTION_ID INT NOT NULL
+    TOKEN varchar(12) PRIMARY KEY
 );
 
 #Create Table for Transaction
@@ -56,6 +55,8 @@ GRANT SELECT, INSERT, DELETE ON LBM.L_BOOK TO 'sqlUser'@'%';
 flush privileges;
 
 ALTER TABLE L_TRANSACTION ENGINE=MyISAM;
+
+ALTER TABLE L_TOKEN ENGINE=MyISAM;
 
 SET GLOBAL event_scheduler = ON;
 
