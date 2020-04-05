@@ -238,35 +238,30 @@ public class SqlHelpers {
     /**
      * Method to Loan book in DB
      * @param id book id
-     * @param isTransaction indicate the request is in transaction behavior or not, if it is true, commit right after update
      * @return 10 if book not found; 15 if book is in conflict status; 20 if success
      */
-    public static int LoanBook (int id, boolean isTransaction){
+    public static int LoanBook (int id){
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            if (!isTransaction){
-                ResultSet results = command.executeQuery(
-                        "SELECT AVAILABLE FROM L_BOOK WHERE ID = " +
-                                id +
-                                ";"
-                );
+            ResultSet results = command.executeQuery(
+                    "SELECT AVAILABLE FROM L_BOOK WHERE ID = " +
+                            id +
+                            ";"
+            );
 
-                if (!results.next()) {
-                    results.close();
-                    return 10;
-                }
-                else if (!results.getBoolean(1)){
-                    return 15;
-                }
-                else {
-                    results.close();
-                }
+            if (!results.next()) {
+                results.close();
+                return 10;
+            }
+            else if (!results.getBoolean(1)){
+                return 15;
+            }
+            else {
+                results.close();
             }
             command.execute("UPDATE L_BOOK SET AVAILABLE = 0 WHERE ID = " + id + ";");
-            if (!isTransaction){
-                command.execute("commit;");
-            }
+            command.execute("commit;");
             return 20;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -276,33 +271,28 @@ public class SqlHelpers {
     /**
      * Method to return book in DB
      * @param id book id
-     * @param isTransaction indicate the request is in transaction behavior or not, if it is true, commit right after update
      * @return 10 if book not found; 15 if book is in conflict status; 20 if success
      */
-    public static int ReturnBook (int id, boolean isTransaction){
+    public static int ReturnBook (int id){
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            if (!isTransaction) {
-                ResultSet results = command.executeQuery(
-                        "SELECT AVAILABLE FROM L_BOOK WHERE ID = " +
-                                id +
-                                ";"
-                );
-                if (!results.next()) {
-                    results.close();
-                    return 10;
-                } else {
-                    if (results.getBoolean(1)) {
-                        return 15;
-                    }
-                    results.close();
+            ResultSet results = command.executeQuery(
+                    "SELECT AVAILABLE FROM L_BOOK WHERE ID = " +
+                            id +
+                            ";"
+            );
+            if (!results.next()) {
+                results.close();
+                return 10;
+            } else {
+                if (results.getBoolean(1)) {
+                    return 15;
                 }
+                results.close();
             }
             command.execute("UPDATE L_BOOK SET AVAILABLE = 1 WHERE ID = " + id + ";");
-            if (!isTransaction){
-                command.execute("commit;");
-            };
+            command.execute("commit;");
             return 20;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -356,6 +346,7 @@ public class SqlHelpers {
                     transactionId = results.getInt(1);
                 }
                 results.close();
+                connection.setAutoCommit(false);
                 return transactionId;
             }else{
                 return 0;
@@ -377,14 +368,13 @@ public class SqlHelpers {
                 Statement command = connection.createStatement();
                 int status = 0;
                 if (transaction.getAction().toUpperCase().equals("LOAN")){
-                    status = LoanBook(transaction.getBookId(), true);
+                    command.execute("UPDATE L_BOOK SET AVAILABLE = 0 WHERE ID = " + transaction.getBookId() + ";");
                 }else if(transaction.getAction().toUpperCase().equals("RETURN")){
-                    status = ReturnBook(transaction.getBookId(), true);
+                    command.execute("UPDATE L_BOOK SET AVAILABLE = 1 WHERE ID = " + transaction.getBookId() + ";");
                 }
                 if(status != 20){
                     return false;
                 }
-                command.execute("UPDATE L_TRANSACTION SET CREATE_TIME=NOW() WHERE TRANSACTION_ID = connection_id();");
                 return true;
             }
         } catch (SQLException e) {
@@ -401,7 +391,7 @@ public class SqlHelpers {
             Connection connection = SqlSingleton.getTransactionConnection(transaction.getTransactionId());
             if(!connection.equals(null)){
                 Statement command = connection.createStatement();
-                command.execute("COMMIT;");
+                connection.commit();
                 command.execute("DELETE FROM L_TRANSACTION WHERE TRANSACTION_ID = connection_id();");
                 return true;
             }
@@ -419,7 +409,7 @@ public class SqlHelpers {
             Connection connection = SqlSingleton.getTransactionConnection(transaction.getTransactionId());
             if(!connection.equals(null)){
                 Statement command = connection.createStatement();
-                command.execute("ROLLBACK;");
+                connection.rollback();
                 command.execute("DELETE FROM L_TRANSACTION WHERE TRANSACTION_ID = connection_id();");
                 return true;
             }

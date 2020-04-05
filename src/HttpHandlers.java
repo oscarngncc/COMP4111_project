@@ -343,11 +343,11 @@ public class HttpHandlers {
                     Availability availability = mapper.readValue(retSrc, Availability.class);
                     if (!availability.isAvailable()) {
                         //Handle loaning
-                        status = SqlHelpers.LoanBook(id, false);
+                        status = SqlHelpers.LoanBook(id);
                     }
                     if (availability.isAvailable()) {
                         //Handle returning
-                        status = SqlHelpers.ReturnBook(id, false);
+                        status = SqlHelpers.ReturnBook(id);
                     }
                     //Check the return status from DB
                     switch (status) {

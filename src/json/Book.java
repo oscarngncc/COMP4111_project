@@ -3,7 +3,7 @@ package json;
 import com.fasterxml.jackson.annotation.JsonFilter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-@JsonIgnoreProperties(value = { "bookId" })
+@JsonIgnoreProperties(value = { "bookId","Available" })
 public class Book {
     private int bookId = 0;
 
