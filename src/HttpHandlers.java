@@ -64,6 +64,10 @@ public class HttpHandlers {
                 mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
                 mapper.configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT,true);
                 //JSON file to Java object
+                if(retSrc.isEmpty() || retSrc == null){
+                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                    return;
+                }
                 User user = mapper.readValue(retSrc, User.class);
 
                 // Set Default response
@@ -298,6 +302,10 @@ public class HttpHandlers {
             //  Handle POST Method
             if(method.equals("POST")){
                 //Map the JSON to book
+                if(retSrc.isEmpty() || retSrc == null){
+                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                    return;
+                }
                 Book book = mapper.readValue(retSrc, Book.class);
                 StringEntity entity = null;
                 //Check whether there is an identical book
@@ -328,6 +336,10 @@ public class HttpHandlers {
 
                     int status = 0;
                     //Get availability from the JSON message to indicate whether it is a loan action or a return action
+                    if(retSrc.isEmpty() || retSrc == null){
+                        response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                        return;
+                    }
                     Availability availability = mapper.readValue(retSrc, Availability.class);
                     if (!availability.isAvailable()) {
                         //Handle loaning
