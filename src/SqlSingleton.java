@@ -1,6 +1,7 @@
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * This the class of Sql Singleton
  *
@@ -20,9 +21,10 @@ public class SqlSingleton {
      * Single connection
      */
     private Connection connection;
+    private static Map<Integer,Connection> connectionPool= new HashMap<Integer,Connection>();;
     // private constructor to force use of
     // getConnection() to create Singleton object
-    private SqlSingleton() {
+    private SqlSingleton(){
 
     }
     /**
@@ -39,9 +41,6 @@ public class SqlSingleton {
     public static Connection getConnection() throws SQLException {
         if (obj==null)
         {
-            // To make thread safe
-                // check again as multiple threads
-                // can reach above step
                 if (obj==null) {
                     obj = new SqlSingleton();
                 }
@@ -56,6 +55,33 @@ public class SqlSingleton {
         return obj.connection;
     }
     /**
+     * Method to find an available connection in connection pool
+     * @return connection
+     */
+    public static Connection getTransactionConnection(String token) throws SQLException {
+        Connection tranConnection = DriverManager.getConnection(connectionString, username, password);
+        Statement command = tranConnection .createStatement();
+        command.execute("INSERT INTO L_TRANSACTION VALUES(connection_id(),'"+token+"',NOW());");
+        ResultSet results = command.executeQuery("SELECT connection_id();");
+        if (results.next()) {
+            int id = results.getInt(1);
+            connectionPool.put(id, tranConnection);
+        }
+        results.close();
+        return null;
+    }
+    /**
+     * Method to find the occupied connection in connection pool
+     * @return connection
+     */
+    public static Connection getTransactionConnection(int id) throws SQLException {
+        if (connectionPool.containsKey(id)) {
+            return connectionPool.get(id);
+        } else {
+            return null;
+        }
+    }
+    /**
      * Method to exit connection
      */
     public static void exitConnection() throws SQLException {
@@ -67,6 +93,9 @@ public class SqlSingleton {
             } catch(Exception e) {
                 System.out.println(e);
             }
+        }
+        for (Map.Entry<Integer, Connection> entry : connectionPool.entrySet()) {
+            entry.getValue().close();
         }
     }
 }

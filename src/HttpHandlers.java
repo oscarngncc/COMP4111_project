@@ -436,8 +436,7 @@ public class HttpHandlers {
                 Transaction transaction = mapper.readValue(retSrc, Transaction.class);
 
                 //Check whether the transaction id is valid or not
-                int transactionIdStatus = SqlHelpers.IsTransactionIdFound(transaction.getTransactionId(), token);
-                if (transactionIdStatus != 20) {
+                if (SqlHelpers.IsTransactionIdFound(transaction.getTransactionId(), token)) {
                     response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                     return;
                 }
@@ -447,7 +446,7 @@ public class HttpHandlers {
                     //Check whether it is a commit operation
                     if (transaction.getOperation().toUpperCase().equals("COMMIT")) {
                         //return 400 if it is invalid otherwise the default 200
-                        if (!SqlHelpers.CommitTransaction()) {
+                        if (!SqlHelpers.CommitTransaction(transaction)) {
                             response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                         }
                         return;
@@ -455,7 +454,7 @@ public class HttpHandlers {
                     //Check whether it is a cancel operation
                     if (transaction.getOperation().toUpperCase().equals("CANCEL")) {
                         //return 400 if it is invalid otherwise the default 200
-                        if (!SqlHelpers.CancelTransaction()) {
+                        if (!SqlHelpers.CancelTransaction(transaction)) {
                             response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                         }
                         return;

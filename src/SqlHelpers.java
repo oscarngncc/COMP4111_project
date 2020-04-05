@@ -39,7 +39,7 @@ public class SqlHelpers {
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            command.execute("INSERT INTO L_TOKEN VALUES ('" + token + "', connection_id());");
+            command.execute("INSERT INTO L_TOKEN VALUES ('" + token + "');");
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -55,7 +55,7 @@ public class SqlHelpers {
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            command.execute("DELETE FROM L_TOKEN WHERE TOKEN = '" + token + "' AND CONNECTION_ID = connection_id();");
+            command.execute("DELETE FROM L_TOKEN WHERE TOKEN = '" + token + "';");
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -73,7 +73,7 @@ public class SqlHelpers {
                 Connection connection = SqlSingleton.getConnection();
                 Statement command = connection.createStatement();
                 ResultSet results = command.executeQuery(
-                        "SELECT * FROM L_TOKEN WHERE TOKEN = '" + token + "' AND CONNECTION_ID = connection_id();"
+                        "SELECT * FROM L_TOKEN WHERE TOKEN = '" + token + "';"
                 );
                 if (!results.next()) {
                     results.close();
@@ -370,21 +370,18 @@ public class SqlHelpers {
      */
     public static int InsertTransaction (String token){
         try {
-            Connection connection = SqlSingleton.getConnection();
-            Statement command = connection.createStatement();
-            ResultSet results = command.executeQuery("SELECT connection_id();");
-            int transactionId = 0;
-            if (!results.next()) {
+            Connection connection = SqlSingleton.getTransactionConnection(token);
+            if(!connection.equals(null)){
+                Statement command = connection.createStatement();
+                ResultSet results = command.executeQuery("SELECT connection_id();");
+                int transactionId = 0;
+                if (!results.next()) {
+                    results.close();
+                }
+                else{
+                    transactionId = results.getInt(1);
+                }
                 results.close();
-            }
-            else{
-                transactionId = results.getInt(1);
-            }
-            results.close();
-            if(IsTransactionIdFound(transactionId,"") == 10){
-                command.execute("ROLLBACK;");
-                command.execute("INSERT INTO L_TRANSACTION VALUES(connection_id(),'"+token+"',NOW());");
-                command.execute("START TRANSACTION;");
                 return transactionId;
             }else{
                 return 0;
@@ -401,19 +398,21 @@ public class SqlHelpers {
      */
     public static boolean UpdateTransaction (Transaction transaction){
         try {
-            Connection connection = SqlSingleton.getConnection();
-            Statement command = connection.createStatement();
-            int status = 0;
-            if (transaction.getAction().toUpperCase().equals("LOAN")){
-                status = LoanBook(transaction.getBookId(), true);
-            }else if(transaction.getAction().toUpperCase().equals("RETURN")){
-                status = ReturnBook(transaction.getBookId(), true);
+            Connection connection = SqlSingleton.getTransactionConnection(transaction.getTransactionId());
+            if(!connection.equals(null)){
+                Statement command = connection.createStatement();
+                int status = 0;
+                if (transaction.getAction().toUpperCase().equals("LOAN")){
+                    status = LoanBook(transaction.getBookId(), true);
+                }else if(transaction.getAction().toUpperCase().equals("RETURN")){
+                    status = ReturnBook(transaction.getBookId(), true);
+                }
+                if(status != 20){
+                    return false;
+                }
+                command.execute("UPDATE L_TRANSACTION SET CREATE_TIME=NOW() WHERE TRANSACTION_ID = connection_id();");
+                return true;
             }
-            if(status != 20){
-                return false;
-            }
-            command.execute("UPDATE L_TRANSACTION SET CREATE_TIME=NOW() WHERE TRANSACTION_ID = connection_id();");
-            return true;
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -423,13 +422,15 @@ public class SqlHelpers {
      * Method to commit transaction in DB
      * @return true if action can be committed, otherwise false
      */
-    public static boolean CommitTransaction (){
+    public static boolean CommitTransaction (Transaction transaction){
         try {
-            Connection connection = SqlSingleton.getConnection();
-            Statement command = connection.createStatement();
-            command.execute("COMMIT;");
-            command.execute("DELETE FROM L_TRANSACTION WHERE TRANSACTION_ID = connection_id();");
-            return true;
+            Connection connection = SqlSingleton.getTransactionConnection(transaction.getTransactionId());
+            if(!connection.equals(null)){
+                Statement command = connection.createStatement();
+                command.execute("COMMIT;");
+                command.execute("DELETE FROM L_TRANSACTION WHERE TRANSACTION_ID = connection_id();");
+                return true;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -439,13 +440,15 @@ public class SqlHelpers {
      * Method to rollback transaction in DB
      * @return true if action can be rollbacked, otherwise false
      */
-    public static boolean CancelTransaction (){
+    public static boolean CancelTransaction (Transaction transaction){
         try {
             Connection connection = SqlSingleton.getConnection();
-            Statement command = connection.createStatement();
-            command.execute("ROLLBACK;");
-            command.execute("DELETE FROM L_TRANSACTION WHERE TRANSACTION_ID = connection_id();");
-            return true;
+            if(!connection.equals(null)){
+                Statement command = connection.createStatement();
+                command.execute("ROLLBACK;");
+                command.execute("DELETE FROM L_TRANSACTION WHERE TRANSACTION_ID = connection_id();");
+                return true;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -457,40 +460,23 @@ public class SqlHelpers {
      * @param token user's token
      * @return 5 if transactionId not valid; 10 if transactionId not exist; 15 if transactionId not matching the token; 20 if everything is ok
      */
-    public static int IsTransactionIdFound (int transactionId, String token){
+    public static boolean IsTransactionIdFound (int transactionId, String token){
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            ResultSet results = command.executeQuery("SELECT connection_id();");
-            if (!results.next()) {
-                results.close();
-            }
-            else{
-                int correctId = results.getInt(1);
-                if(correctId != transactionId){
-                    return 5;
-                }
-            }
-            results = command.executeQuery(
-                    "SELECT * FROM L_TRANSACTION WHERE TRANSACTION_ID = "+
-                            transactionId +
-                            ";");
-            if (!results.next()) {
-                return 10;
-            }
-            results = command.executeQuery(
+            ResultSet results = command.executeQuery(
                     "SELECT * FROM L_TRANSACTION WHERE TRANSACTION_ID = "+
                             transactionId + " AND TOKEN = '" + token + "'" +
                             ";");
             if (!results.next()) {
                 results.close();
-                return 15;
+                return false;
             }
             results.close();
-            return 20;
+            return true;
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return 0;
+        return false;
     }
 }
