@@ -369,10 +369,12 @@ public class SqlHelpers {
                 int status = 0;
                 if (transaction.getAction().toUpperCase().equals("LOAN")){
                     command.execute("UPDATE L_BOOK SET AVAILABLE = 0 WHERE ID = " + transaction.getBookId() + ";");
+                    return true;
                 }else if(transaction.getAction().toUpperCase().equals("RETURN")){
                     command.execute("UPDATE L_BOOK SET AVAILABLE = 1 WHERE ID = " + transaction.getBookId() + ";");
+                    return true;
                 }
-                return true;
+                return false;
             }
         } catch (SQLException e) {
             e.printStackTrace();
