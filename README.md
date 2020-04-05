@@ -7,12 +7,12 @@ Howard, Ling Hou Lam - 20517592
 
 ## RESTful Web Service for Library Book Management
 
-Server Hosting Instruction:\
+Server Hosting Instruction:
 
 Part 1: SQL Server:\
 i. Install MySQL Server 5.7\
 ii. Login with root account\
-iii. Run DB_Initialize.sql\
+iii. Run DB_Initialize.sql
 
 Part 2: Web Server\
 i. Install JDK 11\
