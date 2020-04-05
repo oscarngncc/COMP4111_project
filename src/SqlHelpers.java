@@ -31,7 +31,7 @@ public class SqlHelpers {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
             command.execute("ROLLBACK;");
-            command.execute("INSERT INTO L_TOKEN (TOKEN) VALUES ('" + token + "');");
+            command.execute("INSERT INTO L_TOKEN VALUES ('" + token + "', connection_id());");
             command.execute("commit;");
             return true;
         } catch (SQLException e) {
@@ -45,7 +45,7 @@ public class SqlHelpers {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
             command.execute("ROLLBACK;");
-            command.execute("DELETE FROM L_TOKEN WHERE TOKEN = '" + token + "';");
+            command.execute("DELETE FROM L_TOKEN WHERE TOKEN = '" + token + "' AND CONNECTION_ID = connection_id();");
             command.execute("commit;");
             return true;
         } catch (SQLException e) {
@@ -59,7 +59,9 @@ public class SqlHelpers {
             if(token != null) {
                 Connection connection = SqlSingleton.getConnection();
                 Statement command = connection.createStatement();
-                ResultSet results = command.executeQuery("SELECT * FROM L_TOKEN WHERE TOKEN = '" + token + "';");
+                ResultSet results = command.executeQuery(
+                        "SELECT * FROM L_TOKEN WHERE TOKEN = '" + token + "' AND CONNECTION_ID = connection_id();"
+                );
                 if (!results.next()) {
                     results.close();
                 } else {

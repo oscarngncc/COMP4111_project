@@ -42,6 +42,7 @@ public class HttpHandlers {
 
                 ObjectMapper mapper = new ObjectMapper();
                 mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+                mapper.configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT,true);
                 //JSON file to Java object
                 User user = mapper.readValue(retSrc, User.class);
 
@@ -144,6 +145,7 @@ public class HttpHandlers {
 
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            mapper.configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT,true);
 
             if(method.equals("GET")){
                 try {
@@ -319,6 +321,7 @@ public class HttpHandlers {
 
                 ObjectMapper mapper = new ObjectMapper();
                 mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+                mapper.configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT,true);
                 Transaction transaction = mapper.readValue(retSrc, Transaction.class);
 
                 int transactionIdStatus = SqlHelpers.IsTransactionIdFound(transaction.getTransactionId(), token);
