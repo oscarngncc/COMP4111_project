@@ -435,7 +435,7 @@ public class HttpHandlers {
                         }else{
                             //Return the assigned transaction id
                             StringEntity entity = new StringEntity(
-                                    "{\"Transaction\": \"" + transactionId + "\"}",
+                                    "{\"Transaction\": " + transactionId + "}",
                                     ContentType.create("application/json", Consts.UTF_8));
                             response.setEntity(entity);
                         }
