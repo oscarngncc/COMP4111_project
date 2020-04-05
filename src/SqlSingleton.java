@@ -68,7 +68,7 @@ public class SqlSingleton {
             connectionPool.put(id, tranConnection);
         }
         results.close();
-        return null;
+        return tranConnection;
     }
     /**
      * Method to find the occupied connection in connection pool

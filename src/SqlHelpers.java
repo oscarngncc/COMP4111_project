@@ -2,6 +2,7 @@ import json.Book;
 import json.BookList;
 import json.Transaction;
 
+import java.awt.desktop.SystemEventListener;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -199,26 +200,11 @@ public class SqlHelpers {
                 isFirstCritera = false;
                 sqlStatement += "AUTHOR LIKE '%" + book.getAuthor() + "%'";
             }
-            if(!book.getPublisher().equals("")){
-                if(!isFirstCritera){
-                    sqlStatement += " AND ";
-                }
-                isFirstCritera = false;
-                sqlStatement += "PUBLISHER LIKE '%" + book.getPublisher() + "%'";
+
+            if (isFirstCritera){
+                sqlStatement = "SELECT * FROM L_BOOK";
             }
-            if(!book.getYear().equals("")){
-                if(!isFirstCritera){
-                    sqlStatement += " AND ";
-                }
-                isFirstCritera = false;
-                sqlStatement += "YEAR = " + book.getYear();
-            }
-            if(book.getAvailable() != null){
-                if(!isFirstCritera){
-                    sqlStatement += " AND ";
-                }
-                sqlStatement += "AVAILABLE = " + book.getAvailable();
-            }
+
             if(!sortBy.equals("")){
                 sqlStatement += " ORDER BY " + sortBy;
                 if(asc){
@@ -228,14 +214,7 @@ public class SqlHelpers {
                 }
             }
 
-            //Remove "WHERE" in the statement if no condition
-            String originalSqlStatement = "SELECT * FROM L_BOOK WHERE ";
-            if (sqlStatement.equals(originalSqlStatement)){
-                sqlStatement = "SELECT * FROM L_BOOK";
-            }
-
             sqlStatement = sqlStatement + ";";
-
             ResultSet results = command.executeQuery(sqlStatement);
             int count = 0;
             while (results.next() && (count < limit || limit == 0)) {
@@ -442,7 +421,7 @@ public class SqlHelpers {
      */
     public static boolean CancelTransaction (Transaction transaction){
         try {
-            Connection connection = SqlSingleton.getConnection();
+            Connection connection = SqlSingleton.getTransactionConnection(transaction.getTransactionId());
             if(!connection.equals(null)){
                 Statement command = connection.createStatement();
                 command.execute("ROLLBACK;");

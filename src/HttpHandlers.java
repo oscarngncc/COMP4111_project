@@ -225,11 +225,16 @@ public class HttpHandlers {
                         if ( Integer.parseInt(params.get("LIMIT")) > 0 )
                             limit = Integer.parseInt(params.get("LIMIT"));
                     }
-
                     //Check if user input sortby and order
                     if(params.containsKey("SORTBY") && params.containsKey("ORDER") ) {
                         sortBy = params.get("SORTBY");
-                        sortBy = (sortBy.equals("ID")  || sortBy.equals("AUTHOR") || sortBy.equals("TITLE") ) ? sortBy : "";
+                        sortBy = (sortBy.equals("ID")  ||
+                                sortBy.equals("AUTHOR") ||
+                                sortBy.equals("TITLE") ||
+                                sortBy.equals("PUBLISHER") ||
+                                sortBy.equals("YEAR") ||
+                                sortBy.equals("AVAILABLE")
+                        ) ? sortBy : "";
                         asc = ( params.get("ORDER").equals("DESC") ) ? false : true;
                     }
 
@@ -436,7 +441,7 @@ public class HttpHandlers {
                 Transaction transaction = mapper.readValue(retSrc, Transaction.class);
 
                 //Check whether the transaction id is valid or not
-                if (SqlHelpers.IsTransactionIdFound(transaction.getTransactionId(), token)) {
+                if (!SqlHelpers.IsTransactionIdFound(transaction.getTransactionId(), token)) {
                     response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                     return;
                 }
