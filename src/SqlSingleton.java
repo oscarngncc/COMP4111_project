@@ -52,6 +52,10 @@ public class SqlSingleton {
                 e.printStackTrace();
             }
         }
+        if(!obj.connection.isValid(3)){
+            obj.connection = DriverManager.getConnection(connectionString, username, password);
+        }
+        obj.connection.beginRequest();
         return obj.connection;
     }
     /**
