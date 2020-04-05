@@ -20,7 +20,8 @@ CREATE TABLE L_USER (
 
 #Create Table for token
 CREATE TABLE L_TOKEN (
-    TOKEN varchar(12) PRIMARY KEY
+    TOKEN varchar(12) PRIMARY KEY,
+    CONNECTION_ID INT NOT NULL
 );
 
 #Create Table for Transaction
