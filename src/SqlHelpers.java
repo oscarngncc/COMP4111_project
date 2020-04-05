@@ -8,7 +8,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 public class SqlHelpers {
-
+    /**
+     * Method to check the user is in DB or not
+     * @param username username of the user
+     * @param password password of the user
+     * @return true if the user can be found, otherwise false
+     */
     public static boolean IsUserFound(String username, String password){
         try{
             Connection connection = SqlSingleton.getConnection();
@@ -25,35 +30,43 @@ public class SqlHelpers {
         }
         return true;
     }
-
+    /**
+     * Method to insert token to DB
+     * @param token token string
+     * @return true if the insert is success, otherwise false
+     */
     public static boolean InsertToken (String token){
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            command.execute("ROLLBACK;");
             command.execute("INSERT INTO L_TOKEN VALUES ('" + token + "', connection_id());");
-            command.execute("commit;");
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return false;
     }
-
+    /**
+     * Method to delete token from DB
+     * @param token token string
+     * @return true if the delete is success, otherwise false
+     */
     public static boolean DeleteToken (String token){
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            command.execute("ROLLBACK;");
             command.execute("DELETE FROM L_TOKEN WHERE TOKEN = '" + token + "' AND CONNECTION_ID = connection_id();");
-            command.execute("commit;");
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return false;
     }
-
+    /**
+     * Method to check the token is in DB or not
+     * @param token token of the user
+     * @return true if the token can be found, otherwise false
+     */
     public static boolean IsTokenFound (String token){
         try{
             if(token != null) {
@@ -75,6 +88,11 @@ public class SqlHelpers {
         return false;
     }
 
+    /**
+     * Method to check there is a token associated the user in DB
+     * @param userId userId of the user like "001"
+     * @return true if the token can be found, otherwise false
+     */
     public static boolean IsUserTokenFound (String userId){
         try{
             Connection connection = SqlSingleton.getConnection();
@@ -92,6 +110,11 @@ public class SqlHelpers {
         return true;
     }
 
+    /**
+     * Method to check there is an identical book in DB
+     * @param book book info
+     * @return the book id if the book can be found, otherwise 0
+     */
     public static int FindIdenticalBook (Book book) {
         try {
             Connection connection = SqlSingleton.getConnection();
@@ -116,6 +139,11 @@ public class SqlHelpers {
         }
         return 0;
     }
+    /**
+     * Method to insert book into DB
+     * @param book book info
+     * @return id if the insert is success, otherwise 0
+    */
     public static int InsertBook (Book book){
         try {
             Connection connection = SqlSingleton.getConnection();
@@ -138,6 +166,14 @@ public class SqlHelpers {
         return 0;
     }
 
+    /**
+     * Method to look up book in DB
+     * @param book book info
+     * @param limit limit of the no. of results
+     * @param sortBy the column of the result should be sorted by
+     * @param asc indicate the result is in which order
+     * @return BookList containing all results matching the criteria
+     */
     public static BookList LookUpBook (Book book, int limit, String sortBy, boolean asc){
         try {
             Connection connection = SqlSingleton.getConnection();
@@ -221,7 +257,12 @@ public class SqlHelpers {
         }
         return null;
     }
-
+    /**
+     * Method to Loan book in DB
+     * @param id book id
+     * @param isTransaction indicate the request is in transaction behavior or not, if it is true, commit right after update
+     * @return 10 if book not found; 15 if book is in conflict status; 20 if success
+     */
     public static int LoanBook (int id, boolean isTransaction){
         try {
             Connection connection = SqlSingleton.getConnection();
@@ -256,7 +297,12 @@ public class SqlHelpers {
         }
         return 0;
     }
-
+    /**
+     * Method to return book in DB
+     * @param id book id
+     * @param isTransaction indicate the request is in transaction behavior or not, if it is true, commit right after update
+     * @return 10 if book not found; 15 if book is in conflict status; 20 if success
+     */
     public static int ReturnBook (int id, boolean isTransaction){
         try {
             Connection connection = SqlSingleton.getConnection();
@@ -288,7 +334,11 @@ public class SqlHelpers {
         }
         return 0;
     }
-
+    /**
+     * Method to delete book in DB
+     * @param id book id
+     * @return true if success, otherwise false
+     */
     public static boolean DeleteBook (int id){
         try {
             Connection connection = SqlSingleton.getConnection();
@@ -313,7 +363,11 @@ public class SqlHelpers {
         }
         return false;
     }
-
+    /**
+     * Method to start transaction in DB
+     * @param token user's token
+     * @return transaction id, otherwise 0
+     */
     public static int InsertTransaction (String token){
         try {
             Connection connection = SqlSingleton.getConnection();
@@ -340,7 +394,11 @@ public class SqlHelpers {
         }
         return 0;
     }
-
+    /**
+     * Method to update transaction and perform action in DB
+     * @param transaction transaction info
+     * @return true if action can be performed, otherwise false
+     */
     public static boolean UpdateTransaction (Transaction transaction){
         try {
             Connection connection = SqlSingleton.getConnection();
@@ -361,7 +419,10 @@ public class SqlHelpers {
         }
         return false;
     }
-
+    /**
+     * Method to commit transaction in DB
+     * @return true if action can be committed, otherwise false
+     */
     public static boolean CommitTransaction (){
         try {
             Connection connection = SqlSingleton.getConnection();
@@ -374,7 +435,10 @@ public class SqlHelpers {
         }
         return false;
     }
-
+    /**
+     * Method to rollback transaction in DB
+     * @return true if action can be rollbacked, otherwise false
+     */
     public static boolean CancelTransaction (){
         try {
             Connection connection = SqlSingleton.getConnection();
@@ -387,7 +451,12 @@ public class SqlHelpers {
         }
         return false;
     }
-
+    /**
+     * Method to check the transaction id is valid or not
+     * @param transactionId user's transactionId
+     * @param token user's token
+     * @return 5 if transactionId not valid; 10 if transactionId not exist; 15 if transactionId not matching the token; 20 if everything is ok
+     */
     public static int IsTransactionIdFound (int transactionId, String token){
         try {
             Connection connection = SqlSingleton.getConnection();

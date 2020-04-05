@@ -8,13 +8,18 @@ import org.apache.http.ExceptionLogger;
 import org.apache.http.config.SocketConfig;
 import org.apache.http.impl.bootstrap.HttpServer;
 import org.apache.http.impl.bootstrap.ServerBootstrap;
-
+/**
+ * This is the main class: HttpServerHost. It is used to set the configuration of socket, register handlers and start the web server.
+ *
+ */
 public class HttpServerHost {
 
     public static void main(String[] args) throws Exception {
+        // Get the MySQL connection URL if it is provided
         if(args.length > 0)
             SqlSingleton.setConnection(args[0]);
 
+        //Config Socket
         int port = 8080;
 
         SocketConfig socketConfig = SocketConfig.custom()
@@ -22,6 +27,7 @@ public class HttpServerHost {
                 .setTcpNoDelay(true)
                 .build();
 
+        //Web Server and register handlers
         final HttpServer server = ServerBootstrap.bootstrap()
                 .setListenerPort(port)
                 .setServerInfo("Test/1.1")
@@ -33,9 +39,11 @@ public class HttpServerHost {
                 .registerHandler("/BookManagementService/transaction*", new HttpHandlers.HttpTransactionHandler())
                 .create();
 
+        //Start server
         server.start();
         server.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
 
+        //Server Shutdown handling
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {
@@ -48,7 +56,10 @@ public class HttpServerHost {
             }
         });
     }
-
+    /**
+     * This the class of a Error Exception Logger.
+     *
+     */
     static class StdErrorExceptionLogger implements ExceptionLogger {
 
         @Override
