@@ -140,10 +140,10 @@ class AuthenticationTest {
     @Test
     public void checkIncorrectLogin() throws IOException, HttpException {
         //400
-        HttpResponse response = Login("POST", "user001", "pass007");
+        HttpResponse response = Login("POST", "user00001", "pass00007");
         assertEquals( HttpStatus.SC_BAD_REQUEST, response.getStatusLine().getStatusCode() );
 
-        HttpResponse response2 = Login("POST", "user005", "");
+        HttpResponse response2 = Login("POST", "user00005", "");
         assertEquals( HttpStatus.SC_BAD_REQUEST, response2.getStatusLine().getStatusCode() );
 
         HttpResponse response3 = Login("POST", "", "");
@@ -157,7 +157,7 @@ class AuthenticationTest {
     @Test
     public void checkSuccessLoginLogOut() throws IOException, HttpException {
 
-        HttpResponse response = Login("POST", "user022", "pass022");
+        HttpResponse response = Login("POST", "user00001", "pass00001");
 
         //200
         assertEquals( HttpStatus.SC_OK, response.getStatusLine().getStatusCode() );
@@ -178,7 +178,7 @@ class AuthenticationTest {
     public void checkDuplicateLogin() throws IOException, HttpException {
 
         //Login
-        HttpResponse response = Login("POST", "user010", "pass010");
+        HttpResponse response = Login("POST", "user00010", "pass00010");
 
         //200
         assertEquals( HttpStatus.SC_OK, response.getStatusLine().getStatusCode() );
@@ -188,7 +188,7 @@ class AuthenticationTest {
         String token = arr[3];
 
         //409
-        HttpResponse response2 = Login("POST", "user010", "pass010");
+        HttpResponse response2 = Login("POST", "user00010", "pass00010");
         assertEquals(HttpStatus.SC_CONFLICT, response2.getStatusLine().getStatusCode());
 
         //200

@@ -7,6 +7,8 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.*;
+
 
 public class SqlHelpers {
     /**
@@ -19,7 +21,12 @@ public class SqlHelpers {
         try{
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            ResultSet results = command.executeQuery("SELECT * FROM L_USER WHERE USERNAME = '" + username + "' AND PASSWORD = '" + password + "';");
+
+            PreparedStatement stmt = connection.prepareStatement("SELECT * FROM L_USER WHERE USERNAME =? AND PASSWORD =?");
+            stmt.setString(1, username);
+            stmt.setString(2, password);
+            ResultSet results = stmt.executeQuery();
+
             if (!results.next()){
                 results.close();
                 return false;
@@ -40,7 +47,11 @@ public class SqlHelpers {
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            command.execute("INSERT INTO L_TOKEN VALUES ('" + token + "');");
+
+            PreparedStatement stmt = connection.prepareStatement("INSERT INTO L_TOKEN VALUES (?)");
+            stmt.setString(1, token);
+            stmt.executeUpdate();
+
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -56,7 +67,11 @@ public class SqlHelpers {
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
-            command.execute("DELETE FROM L_TOKEN WHERE TOKEN = '" + token + "';");
+
+            PreparedStatement stmt = connection.prepareStatement("DELETE FROM L_TOKEN WHERE TOKEN = ?");
+            stmt.setString(1, token);
+            stmt.executeUpdate();
+
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -73,9 +88,11 @@ public class SqlHelpers {
             if(token != null) {
                 Connection connection = SqlSingleton.getConnection();
                 Statement command = connection.createStatement();
-                ResultSet results = command.executeQuery(
-                        "SELECT * FROM L_TOKEN WHERE TOKEN = '" + token + "';"
-                );
+
+                PreparedStatement stmt = connection.prepareStatement("SELECT * FROM L_TOKEN WHERE TOKEN = ?");
+                stmt.setString(1, token);
+                ResultSet results = stmt.executeQuery();
+
                 if (!results.next()) {
                     results.close();
                 } else {
@@ -97,8 +114,11 @@ public class SqlHelpers {
     public static boolean IsUserTokenFound (String userId){
         try{
             Connection connection = SqlSingleton.getConnection();
-            Statement command = connection.createStatement();
-            ResultSet results = command.executeQuery("SELECT * FROM L_TOKEN WHERE TOKEN LIKE '" + userId + "%';");
+
+            PreparedStatement stmt = connection.prepareStatement("SELECT * FROM L_TOKEN WHERE TOKEN LIKE ?" );
+            stmt.setString(1, userId + "%");
+            ResultSet results = stmt.executeQuery();
+
             if (!results.next()) {
                 results.close();
                 return false;
@@ -119,15 +139,11 @@ public class SqlHelpers {
     public static int FindIdenticalBook (Book book) {
         try {
             Connection connection = SqlSingleton.getConnection();
-            Statement command = connection.createStatement();
-            ResultSet results = command.executeQuery(
-                    "SELECT * FROM L_BOOK WHERE TITLE = '" +
-                            book.getTitle() + "' AND AUTHOR = '" +
-                            book.getAuthor() + "' AND PUBLISHER = '" +
-                            book.getPublisher() + "' AND YEAR = " +
-                            book.getYear() +
-                            ";"
-            );
+
+            PreparedStatement stmt = connection.prepareStatement("SELECT * FROM L_BOOK WHERE TITLE=?" );
+            stmt.setString(1, book.getTitle());
+            ResultSet results = stmt.executeQuery();
+
             if (!results.next()) {
                 results.close();
             } else {
@@ -148,16 +164,17 @@ public class SqlHelpers {
     public static int InsertBook (Book book){
         try {
             Connection connection = SqlSingleton.getConnection();
+
+            PreparedStatement stmt = connection.prepareStatement("INSERT INTO L_BOOK (TITLE, AUTHOR, PUBLISHER, YEAR) VALUES (?, ?, ?, ?)");
+            stmt.setString(1, book.getTitle());
+            stmt.setString(2, book.getAuthor());
+            stmt.setString(3, book.getPublisher());
+            stmt.setString(4, book.getYear());
+            stmt.executeUpdate();
+
             Statement command = connection.createStatement();
-            command.executeUpdate(
-                    "INSERT INTO L_BOOK (TITLE, AUTHOR, PUBLISHER, YEAR) VALUES ('" +
-                    book.getTitle() + "','"+
-                    book.getAuthor() + "','" +
-                    book.getPublisher() + "'," +
-                    book.getYear()+
-                    ");"
-            );
             command.execute("commit;");
+
             int id = FindIdenticalBook(book);
             return id;
         } catch (SQLException e) {
@@ -179,10 +196,13 @@ public class SqlHelpers {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
             BookList returnList = new BookList();
+
             String sqlStatement = "SELECT * FROM L_BOOK WHERE ";
+
             boolean isFirstCritera = true;
+
             if(book.getBookId() != 0){
-                sqlStatement += "ID = " + book.getBookId();
+                sqlStatement += "ID = ?";
                 isFirstCritera = false;
             }
             if(!book.getTitle().equals("")){
@@ -190,22 +210,23 @@ public class SqlHelpers {
                     sqlStatement += " AND ";
                 }
                 isFirstCritera = false;
-                sqlStatement += "TITLE LIKE '%" + book.getTitle() + "%'";
+                sqlStatement += "TITLE LIKE ?";
             }
             if(!book.getAuthor().equals("")){
                 if(!isFirstCritera){
                     sqlStatement += " AND ";
                 }
                 isFirstCritera = false;
-                sqlStatement += "AUTHOR LIKE '%" + book.getAuthor() + "%'";
+                sqlStatement += "AUTHOR LIKE ?";
             }
 
+            /* If no requirement */
             if (isFirstCritera){
                 sqlStatement = "SELECT * FROM L_BOOK";
             }
 
             if(!sortBy.equals("")){
-                sqlStatement += " ORDER BY " + sortBy;
+                sqlStatement += " ORDER BY ? ";
                 if(asc){
                     sqlStatement += " ASC";
                 }else{
@@ -213,8 +234,25 @@ public class SqlHelpers {
                 }
             }
 
-            sqlStatement = sqlStatement + ";";
-            ResultSet results = command.executeQuery(sqlStatement);
+            int start = 1;
+            PreparedStatement stmt = connection.prepareStatement(sqlStatement);
+            String Options[] = new String[]{ "ID", "TITLE", "AUTHOR", "ORDER BY"};
+            String Values[] = new String[]{ "",  "%" + book.getTitle() + "%", "%" + book.getAuthor() + "%", sortBy  };
+
+
+            for ( int i = 0; i < Options.length; i++ ){
+                if ( i == 0 && sqlStatement.contains("ID") ){
+                    stmt.setInt(start, book.getBookId());
+                    start++;
+                }
+                else if (sqlStatement.contains(Options[i])){
+                    stmt.setString(start, Values[i] );
+                    start++;
+                }
+            }
+            ResultSet results = stmt.executeQuery();
+
+
             int count = 0;
             while (results.next() && (count < limit || limit == 0)) {
                 count++;
@@ -235,6 +273,8 @@ public class SqlHelpers {
         }
         return null;
     }
+
+
     /**
      * Method to Loan book in DB
      * @param id book id
@@ -243,12 +283,9 @@ public class SqlHelpers {
     public static int LoanBook (int id){
         try {
             Connection connection = SqlSingleton.getConnection();
-            Statement command = connection.createStatement();
-            ResultSet results = command.executeQuery(
-                    "SELECT AVAILABLE FROM L_BOOK WHERE ID = " +
-                            id +
-                            ";"
-            );
+            PreparedStatement stmt = connection.prepareStatement("SELECT AVAILABLE FROM L_BOOK WHERE ID = ?");
+            stmt.setInt(1, id);
+            ResultSet results = stmt.executeQuery();
 
             if (!results.next()) {
                 results.close();
@@ -260,8 +297,14 @@ public class SqlHelpers {
             else {
                 results.close();
             }
-            command.execute("UPDATE L_BOOK SET AVAILABLE = 0 WHERE ID = " + id + ";");
+
+            stmt = connection.prepareStatement("UPDATE L_BOOK SET AVAILABLE = 0 WHERE ID = ?");
+            stmt.setInt(1, id);
+            stmt.executeUpdate();
+
+            Statement command = connection.createStatement();
             command.execute("commit;");
+
             return 20;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -276,12 +319,11 @@ public class SqlHelpers {
     public static int ReturnBook (int id){
         try {
             Connection connection = SqlSingleton.getConnection();
-            Statement command = connection.createStatement();
-            ResultSet results = command.executeQuery(
-                    "SELECT AVAILABLE FROM L_BOOK WHERE ID = " +
-                            id +
-                            ";"
-            );
+
+            PreparedStatement stmt = connection.prepareStatement("SELECT AVAILABLE FROM L_BOOK WHERE ID = ?");
+            stmt.setInt(1, id);
+            ResultSet results = stmt.executeQuery();
+
             if (!results.next()) {
                 results.close();
                 return 10;
@@ -291,8 +333,14 @@ public class SqlHelpers {
                 }
                 results.close();
             }
-            command.execute("UPDATE L_BOOK SET AVAILABLE = 1 WHERE ID = " + id + ";");
+
+            stmt = connection.prepareStatement("UPDATE L_BOOK SET AVAILABLE=1 WHERE ID = ?");
+            stmt.setInt(1, id);
+            stmt.executeUpdate();
+
+            Statement command = connection.createStatement();
             command.execute("commit;");
+
             return 20;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -307,20 +355,26 @@ public class SqlHelpers {
     public static boolean DeleteBook (int id){
         try {
             Connection connection = SqlSingleton.getConnection();
-            Statement command = connection.createStatement();
-            ResultSet results = command.executeQuery(
-                    "SELECT * FROM L_BOOK WHERE ID = " +
-                            id +
-                            ";"
-            );
+
+            PreparedStatement stmt = connection.prepareStatement("SELECT * FROM L_BOOK WHERE ID = ?");
+            stmt.setInt(1, id);
+            ResultSet results = stmt.executeQuery();
+
+
             if (!results.next()) {
                 results.close();
                 return false;
             } else {
                 results.close();
             }
-            command.execute("DELETE FROM L_BOOK WHERE ID = " + id + ";");
+
+            stmt = connection.prepareStatement("DELETE FROM L_BOOK WHERE ID = ?");
+            stmt.setInt(1, id);
+            stmt.executeUpdate();
+
+            Statement command = connection.createStatement();
             command.execute("commit;");
+
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -368,10 +422,14 @@ public class SqlHelpers {
                 Statement command = connection.createStatement();
                 int status = 0;
                 if (transaction.getAction().toUpperCase().equals("LOAN")){
-                    command.execute("UPDATE L_BOOK SET AVAILABLE = 0 WHERE ID = " + transaction.getBookId() + ";");
+                    PreparedStatement stmt = connection.prepareStatement("UPDATE L_BOOK SET AVAILABLE = 0 WHERE ID = ?");
+                    stmt.setInt(1, transaction.getBookId());
+                    stmt.executeUpdate();
                     return true;
                 }else if(transaction.getAction().toUpperCase().equals("RETURN")){
-                    command.execute("UPDATE L_BOOK SET AVAILABLE = 1 WHERE ID = " + transaction.getBookId() + ";");
+                    PreparedStatement stmt = connection.prepareStatement("UPDATE L_BOOK SET AVAILABLE = 1 WHERE ID = ?");
+                    stmt.setInt(1, transaction.getBookId());
+                    stmt.executeUpdate();
                     return true;
                 }
                 return false;
@@ -426,11 +484,12 @@ public class SqlHelpers {
     public static boolean IsTransactionIdFound (int transactionId, String token){
         try {
             Connection connection = SqlSingleton.getConnection();
-            Statement command = connection.createStatement();
-            ResultSet results = command.executeQuery(
-                    "SELECT * FROM L_TRANSACTION WHERE TRANSACTION_ID = "+
-                            transactionId + " AND TOKEN = '" + token + "'" +
-                            ";");
+
+            PreparedStatement stmt = connection.prepareStatement("SELECT * FROM L_TRANSACTION WHERE TRANSACTION_ID = ? AND TOKEN = ?");
+            stmt.setInt(1, transactionId);
+            stmt.setString(2, token);
+            ResultSet results = stmt.executeQuery();
+
             if (!results.next()) {
                 results.close();
                 return false;

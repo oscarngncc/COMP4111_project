@@ -14,7 +14,7 @@ public class SqlSingleton {
     /**
      * Default connection config
      */
-    private static String connectionString = "jdbc:mysql://localhost:3306/lbm";
+    private static String connectionString = "jdbc:mysql://localhost:3333/lbm";
     private static String username = "sqlUser";
     private static String password = "sqlUserPwd10000";
     /**

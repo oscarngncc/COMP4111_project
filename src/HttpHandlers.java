@@ -306,7 +306,22 @@ public class HttpHandlers {
                     response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                     return;
                 }
+
                 Book book = mapper.readValue(retSrc, Book.class);
+
+
+                //Prevent error caused by book
+                if (book.getYear() == null || book.getAuthor() == null || book.getTitle() == null || book.getPublisher() == null ) {
+                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                    return;
+                }
+                else if (book.getYear().length() > 4 ){
+                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                    return;
+                }
+
+
+
                 StringEntity entity = null;
                 //Check whether there is an identical book
                 int id = SqlHelpers.FindIdenticalBook(book);

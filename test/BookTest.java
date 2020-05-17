@@ -95,8 +95,8 @@ class BookTest {
         }
         //userNum = (int)(Math.random() * 8) + 1;
         userNum = 9;
-        String username = "user00" + Integer.toString(userNum) ;
-        String password = "pass00" +  Integer.toString(userNum);
+        String username = "user0000" + Integer.toString(userNum) ;
+        String password = "pass0000" +  Integer.toString(userNum);
         String jsonBody = "{\"Username\": \"" + username + "\",\"Password\": \"" + password + "\"}";
         HttpEntity requestEntity = new StringEntity(jsonBody, ContentType.APPLICATION_JSON);
 
@@ -284,7 +284,7 @@ class BookTest {
         /** Peform Adding of 10 books */
         int [] bookIDs = new int[10];
         for ( int i = 0; i < 10; i++ ){
-            String title = "bookTitle" + i % 5 ;
+            String title = "bookTitle" + i;
             String author = "";
             if (i < 3 ){author = "Oscar"; }
             else if (i == 4 ){author = "JoJo"; }

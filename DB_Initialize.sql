@@ -14,8 +14,8 @@ Use LBM;
 
 #Create Table user
 CREATE TABLE L_USER (
-    USERNAME varchar(7) PRIMARY KEY,
-    PASSWORD varchar(7) NOT NULL
+    USERNAME varchar(9) PRIMARY KEY,
+    PASSWORD varchar(9) NOT NULL
 );
 
 #Create Table for token
@@ -42,15 +42,15 @@ CREATE TABLE L_BOOK (
 
 #Create an user from any host, not recommended, replace % with our server when it is provided
 
-CREATE USER 'sqlUser'@'%' IDENTIFIED BY 'sqlUserPwd10000';
+#CREATE USER 'sqlUser'@'localhost:3333' IDENTIFIED BY 'sqlUserPwd10000';
 
-GRANT SELECT ON LBM.L_USER TO 'sqlUser'@'%';
+GRANT SELECT ON LBM.L_USER TO 'sqlUser'@'localhost:3333';
 
-GRANT SELECT, INSERT, DELETE, UPDATE ON LBM.L_TOKEN TO 'sqlUser'@'%';
+GRANT SELECT, INSERT, DELETE, UPDATE ON LBM.L_TOKEN TO 'sqlUser'@'localhost:3333';
 
-GRANT SELECT, INSERT, DELETE, UPDATE ON LBM.L_TRANSACTION TO 'sqlUser'@'%';
+GRANT SELECT, INSERT, DELETE, UPDATE ON LBM.L_TRANSACTION TO 'sqlUser'@'localhost:3333';
 
-GRANT SELECT, INSERT, DELETE ON LBM.L_BOOK TO 'sqlUser'@'%';
+GRANT SELECT, INSERT, DELETE, UPDATE ON LBM.L_BOOK TO 'sqlUser'@'localhost:3333';
 
 flush privileges;
 
@@ -68,14 +68,14 @@ CREATE PROCEDURE populate (IN num int)
 BEGIN
 DECLARE i int DEFAULT 1;
 WHILE i <= num do
-INSERT INTO L_USER (USERNAME,PASSWORD) VALUES (CONCAT('user',LPAD(i, 3, 0)),CONCAT('pass',LPAD(i, 3, 0)));
+INSERT INTO L_USER ( USERNAME, PASSWORD) VALUES (CONCAT('user',LPAD(i, 5, 0)),CONCAT('pass',LPAD(i, 5, 0)));
 SET i = i + 1;
 END WHILE;
 END
 $$
 DELIMITER ;
 
-CALL populate(100);
+CALL populate(10000);
 
 DROP PROCEDURE populate;
 

@@ -1,5 +1,7 @@
 import json.Book;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.Map;
 /**
@@ -12,7 +14,7 @@ public class GeneralHelpers {
      * @param url the url input
      * @return HashMap of parameter names and values .
      */
-    public static Map<String, String> GetParamsMap(String url)
+    public static Map<String, String> GetParamsMap(String url) throws UnsupportedEncodingException
     {
         String query = url.substring(url.indexOf("?")+1);
         String[] params = query.split("&");
@@ -22,6 +24,7 @@ public class GeneralHelpers {
             if (param.split("=").length == 2 ) {
                 String name = param.split("=")[0].toUpperCase();
                 String value = param.split("=")[1];
+                value = URLDecoder.decode(value, "UTF-8");
                 map.put(name, value);
             }
         }
