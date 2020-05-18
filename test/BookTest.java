@@ -165,6 +165,32 @@ class BookTest {
     }
 
 
+
+
+    public HttpResponse AddIncorrectBook(String jsonBody) throws IOException, HttpException  {
+        if (!conn.isOpen()){
+            conn.bind(new Socket(host.getHostName(), host.getPort()));
+        }
+
+        HttpEntity requestEntity = new StringEntity(jsonBody, ContentType.APPLICATION_JSON);
+        BasicHttpEntityEnclosingRequest request = new BasicHttpEntityEnclosingRequest("POST",
+                "/BookManagementService/books?token=" + userToken, HttpVersion.HTTP_1_1);
+        request.setEntity(requestEntity);
+
+        httpexecutor.preProcess(request, httpproc, coreContext);
+        HttpResponse response = httpexecutor.execute(request, conn, coreContext);
+        httpexecutor.postProcess(response, httpproc, coreContext);
+
+        if (response.getEntity() != null )
+            responseBody = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+        else responseBody = "";
+        conn.close();
+        return response;
+    }
+
+
+
+
     //Return Response body
     public HttpResponse LookBook(@Nullable String title, @Nullable String author, @Nullable  Integer id, @Nullable SortBy sortBy,
                            @Nullable Order order, @Nullable Integer limit ) throws IOException, HttpException{
@@ -276,6 +302,20 @@ class BookTest {
         var response3 = deleteBook(id);
         assertEquals(HttpStatus.SC_OK,  response3.getStatusLine().getStatusCode());
     }
+
+
+    @Test
+    public void addIncorrectBook() throws IOException, HttpException {
+        HttpResponse response = AddIncorrectBook("{}");
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusLine().getStatusCode());
+
+        HttpResponse response1 = AddIncorrectBook("{....Hello}");
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response1.getStatusLine().getStatusCode());
+
+        HttpResponse response2 =  AddIncorrectBook("{\"Title\": \"" + "HELLOWORLD" + "\"");
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response2.getStatusLine().getStatusCode());
+    }
+
 
 
     @Test

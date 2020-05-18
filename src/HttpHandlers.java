@@ -1,4 +1,6 @@
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.http.*;
@@ -18,6 +20,31 @@ import json.*;
  *
  */
 public class HttpHandlers {
+
+    public static ObjectMapper setUpMapper(){
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT,true);
+        return mapper;
+    }
+
+
+    /*
+    public static <T>  T parseJson(  String retSrc,  Class<T> classname ) throws JsonProcessingException, IllegalArgumentException {
+        // Map the JSON message to User class
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT, true);
+        //JSON file to Java object
+        if (retSrc.isEmpty() || retSrc == null) {
+            throw new IllegalArgumentException("retSrc is either null or empty");
+        }
+        T value = mapper.readValue(retSrc, classname);
+        return value;
+    }*/
+
+
+
     /**
      * This the class of the HttpHandler of Login function
      *
@@ -58,16 +85,13 @@ public class HttpHandlers {
                     response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                     return;
                 }
-
-                // Map the JSON message to User class
-                ObjectMapper mapper = new ObjectMapper();
-                mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-                mapper.configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT,true);
-                //JSON file to Java object
                 if(retSrc.isEmpty() || retSrc == null){
                     response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                     return;
                 }
+
+                // Map the JSON message to User class
+                ObjectMapper mapper = HttpHandlers.setUpMapper();
                 User user = mapper.readValue(retSrc, User.class);
 
                 // Set Default response
@@ -98,13 +122,20 @@ public class HttpHandlers {
                         "{\"Token\": \"" + token + "\"}",
                         ContentType.create("application/json", Consts.UTF_8));
                 response.setEntity(entity);
-            }catch(Exception e){
+            }
+            catch (JsonProcessingException e){
+                response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                System.out.println("Error in JsonProcessing");
+            }
+            catch(Exception e){
                 // Out of scope invalid input handling
                 response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                 return;
             }
         }
     }
+
+
     /**
      * This the class of a HttpHandler of Logout function
      *
@@ -160,6 +191,8 @@ public class HttpHandlers {
             }
         }
     }
+
+
     /**
      * This the class of a HttpHandler of Book Management Functions
      *
@@ -211,9 +244,8 @@ public class HttpHandlers {
             }
 
             //Config JSON Mapper
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            mapper.configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT,true);
+            ObjectMapper mapper = HttpHandlers.setUpMapper();
+
 
             //Handle Get Method
             if(method.equals("GET")){
@@ -301,46 +333,45 @@ public class HttpHandlers {
 
             //  Handle POST Method
             if(method.equals("POST")){
-                //Map the JSON to book
-                if(retSrc.isEmpty() || retSrc == null){
-                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                try {
+                    //Map the JSON to book
+                    if (retSrc.isEmpty() || retSrc == null) {
+                        response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                        return;
+                    }
+                    Book book = mapper.readValue(retSrc, Book.class);
+
+                    //Prevent error caused by book and year
+                    if (book.getTitle() == "" ){
+                        response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                        return;
+                    } else if (book.getYear().length() > 4) {
+                        response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                        return;
+                    }
+
+                    StringEntity entity = null;
+                    //Check whether there is an identical book
+                    int id = SqlHelpers.FindIdenticalBook(book);
+                    if (id == 0) {
+                        //Insert the book to DB as no identical book
+                        id = SqlHelpers.InsertBook(book);
+                        response.setStatusCode(HttpStatus.SC_CREATED);
+                        response.setHeader("Location", "/books/" + id);
+                        String entityText = "http://localhost:8080/BookManagementService/books/" + id + "?token=" + token;
+                        entity = new StringEntity(entityText, ContentType.TEXT_PLAIN);
+                    } else {
+                        //Return the id of the identical book
+                        response.setStatusCode(HttpStatus.SC_CONFLICT);
+                        response.setHeader("Duplicate record", "/books/" + id);
+                        entity = new StringEntity("Duplicate record: /books/" + id, ContentType.TEXT_PLAIN);
+                    }
+                    //set response body and return
+                    response.setEntity(entity);
                     return;
-                }
-
-                Book book = mapper.readValue(retSrc, Book.class);
-
-
-                //Prevent error caused by book
-                if (book.getYear() == null || book.getAuthor() == null || book.getTitle() == null || book.getPublisher() == null ) {
+                } catch (Exception e){
                     response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
-                    return;
                 }
-                else if (book.getYear().length() > 4 ){
-                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
-                    return;
-                }
-
-
-
-                StringEntity entity = null;
-                //Check whether there is an identical book
-                int id = SqlHelpers.FindIdenticalBook(book);
-                if(id == 0){
-                    //Insert the book to DB as no identical book
-                    id = SqlHelpers.InsertBook(book);
-                    response.setStatusCode(HttpStatus.SC_CREATED);
-                    response.setHeader("Location", "/books/" + id );
-                    String entityText = "http://localhost:8080/BookManagementService/books/" + id + "?token=" + token;
-                    entity = new StringEntity(entityText, ContentType.TEXT_PLAIN);
-                }else{
-                    //Return the id of the identical book
-                    response.setStatusCode(HttpStatus.SC_CONFLICT);
-                    response.setHeader("Duplicate record", "/books/" + id );
-                    entity = new StringEntity("Duplicate record: /books/"+ id, ContentType.TEXT_PLAIN);
-                }
-                //set response body and return
-                response.setEntity(entity);
-                return;
             }
 
             //Handle PUT Method
@@ -380,7 +411,11 @@ public class HttpHandlers {
                             break;
                     }
                     return;
-                }catch (Exception e){
+                }
+                catch (JsonProcessingException e) {
+                    response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                }
+                catch (Exception e){
                     // Out of scope invalid input handling
                     response.setStatusLine(new ProtocolVersion("HTTP", 1, 1), 404, "No book record");
                 }
