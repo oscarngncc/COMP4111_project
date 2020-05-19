@@ -1,3 +1,5 @@
+package helper;
+
 import json.Book;
 import json.BookList;
 import json.Transaction;
@@ -43,16 +45,22 @@ public class SqlHelpers {
      * @param token token string
      * @return true if the insert is success, otherwise false
      */
-    public static boolean InsertToken (String token){
+    public static boolean InsertToken (String token, String username, String password){
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
 
-            PreparedStatement stmt = connection.prepareStatement("INSERT INTO L_TOKEN VALUES (?)");
+            PreparedStatement stmt = connection.prepareStatement("INSERT INTO L_TOKEN VALUES (?, SELECT USERNAME FROM L_USER WHERE USERNAME = ? AND PASSWORD = ?)");
             stmt.setString(1, token);
-            stmt.executeUpdate();
+            stmt.setString(2, username);
+            stmt.setString(3, password);
+            int affectedRowNo = stmt.executeUpdate();
 
-            return true;
+            if( affectedRowNo > 0){
+                return true;
+            }else{
+                return false;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -70,9 +78,12 @@ public class SqlHelpers {
 
             PreparedStatement stmt = connection.prepareStatement("DELETE FROM L_TOKEN WHERE TOKEN = ?");
             stmt.setString(1, token);
-            stmt.executeUpdate();
-
-            return true;
+            int affectedRowNo = stmt.executeUpdate();
+            if( affectedRowNo > 0){
+                return true;
+            }else{
+                return false;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -115,8 +126,8 @@ public class SqlHelpers {
         try{
             Connection connection = SqlSingleton.getConnection();
 
-            PreparedStatement stmt = connection.prepareStatement("SELECT * FROM L_TOKEN WHERE TOKEN LIKE ?" );
-            stmt.setString(1, userId + "%");
+            PreparedStatement stmt = connection.prepareStatement("SELECT * FROM L_TOKEN WHERE USERNAME = ?" );
+            stmt.setString(1, userId);
             ResultSet results = stmt.executeQuery();
 
             if (!results.next()) {

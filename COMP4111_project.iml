@@ -35,5 +35,7 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="library" name="httpcore-4.4.13 (4)" level="project" />
+    <orderEntry type="library" name="httpcore-nio-4.4.13" level="project" />
   </component>
 </module>
