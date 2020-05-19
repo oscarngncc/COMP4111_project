@@ -202,8 +202,14 @@ class AuthenticationTest {
     void checkIncorrectLogout() throws IOException, HttpException {
         //400
         String wrongToken = "I am a wrong Token";
-        HttpResponse logoutResponse1 = Logout(wrongToken);
+        HttpResponse logoutResponse = Logout(wrongToken);
+        assertEquals( HttpStatus.SC_BAD_REQUEST, logoutResponse.getStatusLine().getStatusCode() );
+
+        //400
+        String wrongToken1 = "asf";
+        HttpResponse logoutResponse1 = Logout(wrongToken1);
         assertEquals( HttpStatus.SC_BAD_REQUEST, logoutResponse1.getStatusLine().getStatusCode() );
+
 
         //400
         String wrongToken2 = "This 1 is a Stress Teesssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss" +
