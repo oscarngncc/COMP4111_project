@@ -65,19 +65,21 @@ public class HttpLoginHandler implements HttpAsyncRequestHandler {
             // Set Default response
             response.setStatusCode(HttpStatus.SC_OK);
 
-            // Check the user info is found in the DB
+            // Generate Token
+            String token = GeneralHelpers.GenerateToken(user.getUsername().substring(4));
+
             boolean user_found = SqlHelpers.IsUserFound(user.getUsername(), user.getPassword());
             if (!user_found) {
                 response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
                 return;
             }
 
-            // Generate Token
-            String token = GeneralHelpers.GenerateToken(user.getUsername().substring(4));
-
             // Insert Token to DB
-            boolean result = SqlHelpers.InsertToken(token, user.getUsername(), user.getPassword());
-
+            boolean result = SqlHelpers.InsertToken(token, user.getUsername());
+            if(!result){
+                response.setStatusCode(HttpStatus.SC_CONFLICT);
+                return;
+            }
             // Set response body
             StringEntity entity = new StringEntity(
                     "{\"Token\": \"" + token + "\"}",

@@ -24,7 +24,7 @@ public class SqlHelpers {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
 
-            PreparedStatement stmt = connection.prepareStatement("SELECT * FROM L_USER WHERE USERNAME =? AND PASSWORD =?");
+            PreparedStatement stmt = connection.prepareStatement("SELECT * FROM L_USER WHERE USERNAME = ? AND PASSWORD =?");
             stmt.setString(1, username);
             stmt.setString(2, password);
             ResultSet results = stmt.executeQuery();
@@ -45,26 +45,24 @@ public class SqlHelpers {
      * @param token token string
      * @return true if the insert is success, otherwise false
      */
-    public static boolean InsertToken (String token, String username, String password){
+    public static boolean InsertToken (String token, String username){
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
 
-            PreparedStatement stmt = connection.prepareStatement("INSERT INTO L_TOKEN VALUES (?, SELECT USERNAME FROM L_USER WHERE USERNAME = ? AND PASSWORD = ?)");
-            stmt.setString(1, token);
-            stmt.setString(2, username);
-            stmt.setString(3, password);
+            PreparedStatement stmt = connection.prepareStatement("INSERT INTO L_TOKEN VALUES (?, ?)");
+            stmt.setString(1, username);
+            stmt.setString(2, token);
             int affectedRowNo = stmt.executeUpdate();
 
-            if( affectedRowNo > 0){
+            if(affectedRowNo > 0){
                 return true;
             }else{
                 return false;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            return false;
         }
-        return false;
     }
     /**
      * Method to delete token from DB
