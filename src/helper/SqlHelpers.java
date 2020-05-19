@@ -1,3 +1,5 @@
+package helper;
+
 import json.Book;
 import json.BookList;
 import json.Transaction;
@@ -22,7 +24,7 @@ public class SqlHelpers {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
 
-            PreparedStatement stmt = connection.prepareStatement("SELECT * FROM L_USER WHERE USERNAME =? AND PASSWORD =?");
+            PreparedStatement stmt = connection.prepareStatement("SELECT * FROM L_USER WHERE USERNAME = ? AND PASSWORD =?");
             stmt.setString(1, username);
             stmt.setString(2, password);
             ResultSet results = stmt.executeQuery();
@@ -43,20 +45,24 @@ public class SqlHelpers {
      * @param token token string
      * @return true if the insert is success, otherwise false
      */
-    public static boolean InsertToken (String token){
+    public static boolean InsertToken (String token, String username){
         try {
             Connection connection = SqlSingleton.getConnection();
             Statement command = connection.createStatement();
 
-            PreparedStatement stmt = connection.prepareStatement("INSERT INTO L_TOKEN VALUES (?)");
-            stmt.setString(1, token);
-            stmt.executeUpdate();
+            PreparedStatement stmt = connection.prepareStatement("INSERT INTO L_TOKEN VALUES (?, ?)");
+            stmt.setString(1, username);
+            stmt.setString(2, token);
+            int affectedRowNo = stmt.executeUpdate();
 
-            return true;
+            if(affectedRowNo > 0){
+                return true;
+            }else{
+                return false;
+            }
         } catch (SQLException e) {
-            e.printStackTrace();
+            return false;
         }
-        return false;
     }
     /**
      * Method to delete token from DB
@@ -70,9 +76,12 @@ public class SqlHelpers {
 
             PreparedStatement stmt = connection.prepareStatement("DELETE FROM L_TOKEN WHERE TOKEN = ?");
             stmt.setString(1, token);
-            stmt.executeUpdate();
-
-            return true;
+            int affectedRowNo = stmt.executeUpdate();
+            if( affectedRowNo > 0){
+                return true;
+            }else{
+                return false;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -115,8 +124,8 @@ public class SqlHelpers {
         try{
             Connection connection = SqlSingleton.getConnection();
 
-            PreparedStatement stmt = connection.prepareStatement("SELECT * FROM L_TOKEN WHERE TOKEN LIKE ?" );
-            stmt.setString(1, userId + "%");
+            PreparedStatement stmt = connection.prepareStatement("SELECT * FROM L_TOKEN WHERE USERNAME = ?" );
+            stmt.setString(1, userId);
             ResultSet results = stmt.executeQuery();
 
             if (!results.next()) {
