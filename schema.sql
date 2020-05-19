@@ -20,7 +20,8 @@ CREATE TABLE L_USER (
 
 #Create Table for token
 CREATE TABLE L_TOKEN (
-    TOKEN varchar(12) PRIMARY KEY
+    USERNAME varchar(9) PRIMARY KEY,
+    TOKEN varchar(12)
 );
 
 #Create Table for Transaction
@@ -60,9 +61,9 @@ SET GLOBAL event_scheduler = ON;
 
 SET GLOBAL wait_timeout=120;
 
-#Create 100 users
+#Create 10000 users
 DELIMITER $$
-CREATE PROCEDURE populate (IN num int)
+CREATE PROCEDURE populate (num int)
 BEGIN
 DECLARE i int DEFAULT 1;
 WHILE i <= num do
@@ -87,4 +88,12 @@ DO BEGIN
 END;
 $$
 DELIMITER ;
+
+Select * from L_TOKEN;
+Select * from L_BOOK;
+
+DELETE FROM L_TOKEN;
+DELETE FROM L_BOOK;
+SELECT USERNAME FROM L_USER WHERE USERNAME = 'user00001' AND PASSWORD = 'pass00001' ;
+
 
