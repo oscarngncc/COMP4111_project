@@ -58,6 +58,7 @@ public class SqlSingleton {
             obj.connection = DriverManager.getConnection(connectionString, username, password);
         }
         obj.connection.beginRequest();
+        obj.connection.setAutoCommit(true);
         return obj.connection;
     }
     /**

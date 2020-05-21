@@ -173,16 +173,16 @@ public class HttpBookHandler implements HttpAsyncRequestHandler {
 
                 StringEntity entity = null;
                 //Check whether there is an identical book
-                int id = SqlHelpers.FindIdenticalBook(book);
-                if (id == 0) {
+                int id = SqlHelpers.InsertBook(book);
+                if (id > 0) {
                     //Insert the book to DB as no identical book
-                    id = SqlHelpers.InsertBook(book);
                     response.setStatusCode(HttpStatus.SC_CREATED);
                     response.setHeader("Location", "/books/" + id);
                     String entityText = "http://localhost:8080/BookManagementService/books/" + id + "?token=" + token;
                     entity = new StringEntity(entityText, ContentType.TEXT_PLAIN);
                 } else {
                     //Return the id of the identical book
+                    id = SqlHelpers.FindIdenticalBook(book);
                     response.setStatusCode(HttpStatus.SC_CONFLICT);
                     response.setHeader("Duplicate record", "/books/" + id);
                     entity = new StringEntity("Duplicate record: /books/" + id, ContentType.TEXT_PLAIN);

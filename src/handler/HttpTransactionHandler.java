@@ -86,9 +86,7 @@ public class HttpTransactionHandler implements HttpAsyncRequestHandler {
             }
 
             //Map the JSON message to a transaction object
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            mapper.configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT, true);
+            ObjectMapper mapper = HttpHelpers.setUpMapper();
             Transaction transaction = mapper.readValue(retSrc, Transaction.class);
 
             //Check whether the transaction id is valid or not

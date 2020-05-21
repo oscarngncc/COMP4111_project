@@ -174,20 +174,23 @@ public class SqlHelpers {
         try {
             Connection connection = SqlSingleton.getConnection();
 
-            PreparedStatement stmt = connection.prepareStatement("INSERT INTO L_BOOK (TITLE, AUTHOR, PUBLISHER, YEAR) VALUES (?, ?, ?, ?)");
+            PreparedStatement stmt = connection.prepareStatement("INSERT INTO L_BOOK (TITLE, AUTHOR, PUBLISHER, YEAR) VALUES (?, ?, ?, ?);", Statement.RETURN_GENERATED_KEYS);
             stmt.setString(1, book.getTitle());
             stmt.setString(2, book.getAuthor());
             stmt.setString(3, book.getPublisher());
             stmt.setString(4, book.getYear());
-            stmt.executeUpdate();
+            stmt.execute();
+            ResultSet results = stmt.getGeneratedKeys();
 
-            Statement command = connection.createStatement();
-            command.execute("commit;");
-
-            int id = FindIdenticalBook(book);
-            return id;
+            if (!results.next()) {
+                results.close();
+            } else {
+                int id = results.getInt(1);
+                results.close();
+                return id;
+            }
         } catch (SQLException e) {
-            e.printStackTrace();
+            return 0;
         }
         return 0;
     }
@@ -311,9 +314,6 @@ public class SqlHelpers {
             stmt.setInt(1, id);
             stmt.executeUpdate();
 
-            Statement command = connection.createStatement();
-            command.execute("commit;");
-
             return 20;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -347,9 +347,6 @@ public class SqlHelpers {
             stmt.setInt(1, id);
             stmt.executeUpdate();
 
-            Statement command = connection.createStatement();
-            command.execute("commit;");
-
             return 20;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -365,26 +362,15 @@ public class SqlHelpers {
         try {
             Connection connection = SqlSingleton.getConnection();
 
-            PreparedStatement stmt = connection.prepareStatement("SELECT * FROM L_BOOK WHERE ID = ?");
+            PreparedStatement stmt = connection.prepareStatement("DELETE FROM L_BOOK WHERE ID = ?");
             stmt.setInt(1, id);
-            ResultSet results = stmt.executeQuery();
-
-
-            if (!results.next()) {
-                results.close();
+            int affectedRowNo = stmt.executeUpdate();
+            if( affectedRowNo > 0){
+                return true;
+            }else{
                 return false;
-            } else {
-                results.close();
             }
 
-            stmt = connection.prepareStatement("DELETE FROM L_BOOK WHERE ID = ?");
-            stmt.setInt(1, id);
-            stmt.executeUpdate();
-
-            Statement command = connection.createStatement();
-            command.execute("commit;");
-
-            return true;
         } catch (SQLException e) {
             e.printStackTrace();
         }

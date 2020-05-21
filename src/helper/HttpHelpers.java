@@ -34,5 +34,4 @@ public class HttpHelpers {
         return mapper;
     }
 
-
 }

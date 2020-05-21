@@ -34,7 +34,7 @@ CREATE TABLE L_TRANSACTION (
 #Create Table for Book
 CREATE TABLE L_BOOK (
     ID INT PRIMARY KEY AUTO_INCREMENT,
-    TITLE varchar(255),
+    TITLE varchar(255) unique,
     AUTHOR varchar(255),
     PUBLISHER varchar(255),
     YEAR varchar(4),
@@ -89,11 +89,5 @@ END;
 $$
 DELIMITER ;
 
-Select * from L_TOKEN;
-Select * from L_BOOK;
-
-DELETE FROM L_TOKEN;
-DELETE FROM L_BOOK;
-SELECT USERNAME FROM L_USER WHERE USERNAME = 'user00001' AND PASSWORD = 'pass00001' ;
 
 

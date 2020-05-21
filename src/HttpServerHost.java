@@ -13,6 +13,8 @@ import org.apache.http.ExceptionLogger;
 import org.apache.http.impl.nio.bootstrap.HttpServer;
 import org.apache.http.impl.nio.bootstrap.ServerBootstrap;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
+import org.apache.http.nio.protocol.HttpAsyncService;
+import org.apache.http.pool.PoolEntry;
 
 /**
  * This is the main class: HttpServerHost. It is used to set the configuration of socket, register handlers and start the web server.
@@ -31,8 +33,6 @@ public class HttpServerHost {
             port = Integer.parseInt(args[1]);
         }
 
-
-
         final IOReactorConfig config = IOReactorConfig.custom()
                 .setSoTimeout(15000)
                 .setTcpNoDelay(true)
@@ -48,8 +48,9 @@ public class HttpServerHost {
                 .registerHandler("/BookManagementService/books*", new HttpBookHandler())
                 .registerHandler("/BookManagementService/transaction*", new HttpTransactionHandler())
                 .create();
-
         //Start server
+
+
         server.start();
         server.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
 
