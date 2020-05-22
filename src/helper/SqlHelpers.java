@@ -292,29 +292,47 @@ public class SqlHelpers {
      * @param id book id
      * @return 10 if book not found; 15 if book is in conflict status; 20 if success
      */
-    public static int LoanBook (int id){
+    public static int PutBookAction (int id, boolean action){
         try {
             Connection connection = SqlSingleton.getConnection();
-            PreparedStatement stmt = connection.prepareStatement("SELECT AVAILABLE FROM L_BOOK WHERE ID = ?");
+
+            PreparedStatement stmt = connection.prepareStatement("SELECT * FROM L_BOOK_LOCK WHERE ID = ?");
             stmt.setInt(1, id);
             ResultSet results = stmt.executeQuery();
 
-            if (!results.next()) {
+            if (results.next()) {
                 results.close();
-                return 10;
-            }
-            else if (!results.getBoolean(1)){
                 return 15;
             }
             else {
                 results.close();
             }
 
-            stmt = connection.prepareStatement("UPDATE L_BOOK SET AVAILABLE = 0 WHERE ID = ?");
+            stmt = connection.prepareStatement("SELECT AVAILABLE FROM L_BOOK WHERE ID = ?");
             stmt.setInt(1, id);
-            stmt.executeUpdate();
+            results = stmt.executeQuery();
 
-            return 20;
+            if (!results.next()) {
+                results.close();
+                return 10;
+            }
+            else if (results.getBoolean(1) == action){
+                return 15;
+            }
+            else {
+                results.close();
+            }
+
+            stmt = connection.prepareStatement("UPDATE L_BOOK SET AVAILABLE = ? WHERE ID = ?");
+            stmt.setBoolean(1, action);
+            stmt.setInt(2, id);
+            int affectedRowNo = stmt.executeUpdate();
+            if( affectedRowNo > 0){
+                return 20;
+            }else{
+                return 15;
+            }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -345,9 +363,13 @@ public class SqlHelpers {
 
             stmt = connection.prepareStatement("UPDATE L_BOOK SET AVAILABLE=1 WHERE ID = ?");
             stmt.setInt(1, id);
-            stmt.executeUpdate();
+            int affectedRowNo = stmt.executeUpdate();
+            if( affectedRowNo > 0){
+                return 20;
+            }else{
+                return 15;
+            }
 
-            return 20;
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -414,26 +436,63 @@ public class SqlHelpers {
         try {
             Connection connection = SqlSingleton.getTransactionConnection(transaction.getTransactionId());
             if(!connection.equals(null)){
-                Statement command = connection.createStatement();
-                int status = 0;
                 if (transaction.getAction().toUpperCase().equals("LOAN")){
-                    PreparedStatement stmt = connection.prepareStatement("UPDATE L_BOOK SET AVAILABLE = 0 WHERE ID = ?");
-                    stmt.setInt(1, transaction.getBookId());
-                    stmt.executeUpdate();
-                    return true;
+                    return putTransactionAction(transaction.getBookId(), false,connection);
                 }else if(transaction.getAction().toUpperCase().equals("RETURN")){
-                    PreparedStatement stmt = connection.prepareStatement("UPDATE L_BOOK SET AVAILABLE = 1 WHERE ID = ?");
-                    stmt.setInt(1, transaction.getBookId());
-                    stmt.executeUpdate();
-                    return true;
+                    return putTransactionAction(transaction.getBookId(),true,connection);
                 }
-                return false;
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return false;
     }
+
+    private static boolean putTransactionAction (int id, boolean bookAction, Connection connection ){
+        try {
+            int count = 0;
+            int timeout = 1000;
+            boolean isGetAccess = false;
+
+            while(count < 3 && !isGetAccess) {
+                try {
+                    PreparedStatement stmt = connection.prepareStatement("SELECT * FROM L_BOOK_LOCK WHERE ID = ? AND TRANSACTION_ID = connection_id();");
+                    stmt.setInt(1, id);
+                    ResultSet results = stmt.executeQuery();
+
+                    if (results.next()) {
+                        results.close();
+                    } else {
+                        results.close();
+                        stmt = connection.prepareStatement("INSERT INTO L_BOOK_LOCK VALUE (? ,connection_id());");
+                        stmt.setInt(1, id);
+                        int affectedRowNo = stmt.executeUpdate();
+                        if (affectedRowNo > 0) {
+                            isGetAccess = true;
+                        }
+                    }
+                }finally {
+                    Thread.sleep(timeout);
+                    count++;
+                }
+            }
+            if(!isGetAccess){
+                return false;
+            }
+            PreparedStatement stmt = connection.prepareStatement("UPDATE L_BOOK SET AVAILABLE = ? WHERE ID = (SELECT ID FROM L_BOOK_LOCK WHERE ID = ? AND TRANSACTION_ID = connection_id());");
+            stmt.setBoolean(1,bookAction);
+            stmt.setInt(2, id);
+            int affectedRowNo = stmt.executeUpdate();
+            if( affectedRowNo > 0){
+                return true;
+            }else{
+                return false;
+            }
+        } catch (SQLException | InterruptedException e) {
+            return false;
+        }
+    }
+
     /**
      * Method to commit transaction in DB
      * @return true if action can be committed, otherwise false
@@ -444,6 +503,7 @@ public class SqlHelpers {
             if(!connection.equals(null)){
                 Statement command = connection.createStatement();
                 connection.commit();
+                command.execute("DELETE FROM L_BOOK_LOCK WHERE TRANSACTION_ID = connection_id();");
                 command.execute("DELETE FROM L_TRANSACTION WHERE TRANSACTION_ID = connection_id();");
                 return true;
             }
@@ -462,6 +522,7 @@ public class SqlHelpers {
             if(!connection.equals(null)){
                 Statement command = connection.createStatement();
                 connection.rollback();
+                command.execute("DELETE FROM L_BOOK_LOCK WHERE TRANSACTION_ID = connection_id();");
                 command.execute("DELETE FROM L_TRANSACTION WHERE TRANSACTION_ID = connection_id();");
                 return true;
             }

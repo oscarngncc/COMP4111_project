@@ -78,9 +78,13 @@ public class HttpBookHandler implements HttpAsyncRequestHandler {
                 int limit = 0;
 
                 //Check if user input limit
-                if (params.containsKey("LIMIT")){
-                    if ( Integer.parseInt(params.get("LIMIT")) > 0 )
+                if (params.containsKey("LIMIT")) {
+                    if (Integer.parseInt(params.get("LIMIT")) > 0){
                         limit = Integer.parseInt(params.get("LIMIT"));
+                    }else{
+                        response.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+                        return;
+                    }
                 }
                 //Check if user input sortby and order
                 if(params.containsKey("SORTBY") && params.containsKey("ORDER") ) {
@@ -208,14 +212,7 @@ public class HttpBookHandler implements HttpAsyncRequestHandler {
                     return;
                 }
                 Availability availability = mapper.readValue(retSrc, Availability.class);
-                if (!availability.isAvailable()) {
-                    //Handle loaning
-                    status = SqlHelpers.LoanBook(id);
-                }
-                if (availability.isAvailable()) {
-                    //Handle returning
-                    status = SqlHelpers.ReturnBook(id);
-                }
+                status = SqlHelpers.PutBookAction(id, availability.isAvailable());
                 //Check the return status from DB
                 switch (status) {
                     case 10:
