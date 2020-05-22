@@ -462,6 +462,7 @@ public class SqlHelpers {
 
                     if (results.next()) {
                         results.close();
+                        isGetAccess = true;
                     } else {
                         results.close();
                         stmt = connection.prepareStatement("INSERT INTO L_BOOK_LOCK VALUE (? ,connection_id());");
@@ -482,12 +483,8 @@ public class SqlHelpers {
             PreparedStatement stmt = connection.prepareStatement("UPDATE L_BOOK SET AVAILABLE = ? WHERE ID = (SELECT ID FROM L_BOOK_LOCK WHERE ID = ? AND TRANSACTION_ID = connection_id());");
             stmt.setBoolean(1,bookAction);
             stmt.setInt(2, id);
-            int affectedRowNo = stmt.executeUpdate();
-            if( affectedRowNo > 0){
-                return true;
-            }else{
-                return false;
-            }
+            stmt.executeUpdate();
+            return true;
         } catch (SQLException | InterruptedException e) {
             return false;
         }
