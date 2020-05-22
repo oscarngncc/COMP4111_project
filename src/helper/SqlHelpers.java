@@ -470,9 +470,12 @@ public class SqlHelpers {
                         int affectedRowNo = stmt.executeUpdate();
                         if (affectedRowNo > 0) {
                             isGetAccess = true;
+                        }else{
+                            Thread.sleep(timeout);
+                            count++;
                         }
                     }
-                }finally {
+                }catch (SQLException e){
                     Thread.sleep(timeout);
                     count++;
                 }
