@@ -24,13 +24,23 @@ public class HttpServerHost {
 
     public static void main(String[] args) throws Exception {
         // Get the MySQL connection URL if it is provided
-        if(args.length > 0)
-            SqlSingleton.setConnection(args[0]);
+
 
         //Config Socket
         int port = 8080;
-        if (args.length >= 2) {
-            port = Integer.parseInt(args[1]);
+        if (args.length > 0) {
+            try {
+                port = Integer.parseInt(args[0]);
+            }catch(NumberFormatException e){
+            }
+        }
+
+        if(args.length > 1) {
+            SqlSingleton.setConnection(args[1]);
+        }
+
+        if(args.length == 4) {
+            SqlSingleton.setConnection(args[1], args[2], args[3]);
         }
 
         final IOReactorConfig config = IOReactorConfig.custom()
@@ -66,23 +76,5 @@ public class HttpServerHost {
                 server.shutdown(5, TimeUnit.SECONDS);
             }
         });
-    }
-    /**
-     * This the class of a Error Exception Logger.
-     *
-     */
-    static class StdErrorExceptionLogger implements ExceptionLogger {
-
-        @Override
-        public void log(final Exception ex) {
-            if (ex instanceof SocketTimeoutException) {
-                System.err.println("Connection timed out");
-            } else if (ex instanceof ConnectionClosedException) {
-                System.err.println(ex.getMessage());
-            } else {
-                ex.printStackTrace();
-            }
-        }
-
     }
 }

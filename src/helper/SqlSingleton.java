@@ -16,7 +16,7 @@ public class SqlSingleton {
     /**
      * Default connection config
      */
-    private static String connectionString = "jdbc:mysql://localhost:3333/lbm";
+    private static String connectionString = "jdbc:mysql://localhost:3306/lbm";
     private static String username = "sqlUser";
     private static String password = "sqlUserPwd10000";
     /**
@@ -35,6 +35,12 @@ public class SqlSingleton {
      */
     public static void setConnection(String connectionStringInput) {
         connectionString = connectionStringInput;
+    }
+
+    public static void setConnection(String connectionStringInput, String usernameInput, String passwordInput) {
+        connectionString = connectionStringInput;
+        username = usernameInput;
+        password = passwordInput;
     }
     /**
      * Method to create and return the single connection
