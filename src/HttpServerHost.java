@@ -52,7 +52,7 @@ public class HttpServerHost {
                 .setListenerPort(port)
                 .setServerInfo("Test/1.1")
                 .setIOReactorConfig(config)
-                .setExceptionLogger(ExceptionLogger.STD_ERR)
+                .setExceptionLogger(ExceptionLogger.NO_OP)
                 .registerHandler("/BookManagementService/login*", new HttpLoginHandler())
                 .registerHandler("/BookManagementService/logout*", new HttpLogoutHandler())
                 .registerHandler("/BookManagementService/books*", new HttpBookHandler())

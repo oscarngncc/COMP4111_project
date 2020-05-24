@@ -96,7 +96,8 @@ public class HttpBookHandler implements HttpAsyncRequestHandler {
                             sortBy.equals("YEAR") ||
                             sortBy.equals("AVAILABLE")
                     ) ? sortBy : "";
-                    asc = ( params.get("ORDER").equals("DESC") ) ? false : true;
+                    String order = params.get("ORDER").toUpperCase();
+                    asc = !(order.equals("DESC"));
                 }
 
                 //Look up books in DB and store results in BookList

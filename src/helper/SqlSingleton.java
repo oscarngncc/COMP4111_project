@@ -57,7 +57,7 @@ public class SqlSingleton {
             try {
                 obj.connection = DriverManager.getConnection(connectionString, username, password);
             } catch (SQLException e) {
-                e.printStackTrace();
+
             }
         }
         if(!obj.connection.isValid(3)){
@@ -71,24 +71,20 @@ public class SqlSingleton {
      * Method to find an available connection in connection pool
      * @return connection
      */
-    public static Connection getTransactionConnection(String token) throws SQLException {
+    public static int getTransactionConnectionId(String token) throws SQLException {
         Connection tranConnection = DriverManager.getConnection(connectionString, username, password);
         tranConnection.setAutoCommit(false);
-        Statement command = tranConnection .createStatement();
-        command.execute("INSERT INTO L_TRANSACTION VALUES(connection_id(),'"+token+"',NOW());");
-        ResultSet results = command.executeQuery("SELECT connection_id();");
-        if (results.next()) {
-            int id = results.getInt(1);
+        int id = SqlHelpers.GetTransactionId(tranConnection, token);
+        if(id > 0) {
             connectionPool.put(id, tranConnection);
         }
-        results.close();
-        return tranConnection;
+        return id;
     }
     /**
      * Method to find the occupied connection in connection pool
      * @return connection
      */
-    public static Connection getTransactionConnection(int id) throws SQLException {
+    public static Connection getTransactionConnection(int id){
         if (connectionPool.containsKey(id)) {
             return connectionPool.get(id);
         } else {

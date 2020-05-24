@@ -65,7 +65,7 @@ flush privileges;
 ALTER TABLE L_TRANSACTION ENGINE=MyISAM;
 ALTER TABLE L_BOOK_LOCK ENGINE=MyISAM;
 
-SET GLOBAL max_connections = 500;
+SET GLOBAL max_connections = 20000;
 
 SET GLOBAL event_scheduler = ON;
 

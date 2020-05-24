@@ -238,7 +238,7 @@ public class SqlHelpers {
             }
 
             if(!sortBy.equals("")){
-                sqlStatement += " ORDER BY ? ";
+                sqlStatement += " ORDER BY " + sortBy + " ";
                 if(asc){
                     sqlStatement += " ASC";
                 }else{
@@ -248,8 +248,8 @@ public class SqlHelpers {
 
             int start = 1;
             PreparedStatement stmt = connection.prepareStatement(sqlStatement);
-            String Options[] = new String[]{ "ID", "TITLE", "AUTHOR", "ORDER BY"};
-            String Values[] = new String[]{ "",  "%" + book.getTitle() + "%", "%" + book.getAuthor() + "%", sortBy  };
+            String Options[] = new String[]{ "ID", "TITLE", "AUTHOR"};
+            String Values[] = new String[]{ "",  "%" + book.getTitle() + "%", "%" + book.getAuthor() + "%"};
 
 
             for ( int i = 0; i < Options.length; i++ ){
@@ -292,31 +292,30 @@ public class SqlHelpers {
      * @param id book id
      * @return 10 if book not found; 15 if book is in conflict status; 20 if success
      */
-    public static int PutBookAction (int id, boolean action){
+    public static int PutBookAction (int id, boolean action) {
         try {
             Connection connection = SqlSingleton.getConnection();
 
-            PreparedStatement stmt = connection.prepareStatement("SELECT * FROM L_BOOK_LOCK WHERE ID = ?");
+            PreparedStatement stmt = connection.prepareStatement("INSERT INTO L_BOOK_LOCK VALUE (? , 0);");
             stmt.setInt(1, id);
-            ResultSet results = stmt.executeQuery();
-
-            if (results.next()) {
-                results.close();
-                return 15;
-            }
-            else {
-                results.close();
-            }
+            stmt.executeUpdate();
 
             stmt = connection.prepareStatement("SELECT AVAILABLE FROM L_BOOK WHERE ID = ?");
             stmt.setInt(1, id);
-            results = stmt.executeQuery();
+            ResultSet results = stmt.executeQuery();
 
             if (!results.next()) {
+                stmt = connection.prepareStatement("DELETE FROM L_BOOK_LOCK WHERE ID = ?;");
+                stmt.setInt(1, id);
+                stmt.executeUpdate();
                 results.close();
                 return 10;
             }
             else if (results.getBoolean(1) == action){
+                stmt = connection.prepareStatement("DELETE FROM L_BOOK_LOCK WHERE ID = ?;");
+                stmt.setInt(1, id);
+                stmt.executeUpdate();
+                results.close();
                 return 15;
             }
             else {
@@ -327,6 +326,11 @@ public class SqlHelpers {
             stmt.setBoolean(1, action);
             stmt.setInt(2, id);
             int affectedRowNo = stmt.executeUpdate();
+
+            stmt = connection.prepareStatement("DELETE FROM L_BOOK_LOCK WHERE ID = ?;");
+            stmt.setInt(1, id);
+            stmt.executeUpdate();
+
             if( affectedRowNo > 0){
                 return 20;
             }else{
@@ -334,47 +338,10 @@ public class SqlHelpers {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            return 15;
         }
-        return 0;
     }
-    /**
-     * Method to return book in DB
-     * @param id book id
-     * @return 10 if book not found; 15 if book is in conflict status; 20 if success
-     */
-    public static int ReturnBook (int id){
-        try {
-            Connection connection = SqlSingleton.getConnection();
 
-            PreparedStatement stmt = connection.prepareStatement("SELECT AVAILABLE FROM L_BOOK WHERE ID = ?");
-            stmt.setInt(1, id);
-            ResultSet results = stmt.executeQuery();
-
-            if (!results.next()) {
-                results.close();
-                return 10;
-            } else {
-                if (results.getBoolean(1)) {
-                    return 15;
-                }
-                results.close();
-            }
-
-            stmt = connection.prepareStatement("UPDATE L_BOOK SET AVAILABLE=1 WHERE ID = ?");
-            stmt.setInt(1, id);
-            int affectedRowNo = stmt.executeUpdate();
-            if( affectedRowNo > 0){
-                return 20;
-            }else{
-                return 15;
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return 0;
-    }
     /**
      * Method to delete book in DB
      * @param id book id
@@ -403,27 +370,30 @@ public class SqlHelpers {
      * @param token user's token
      * @return transaction id, otherwise 0
      */
+    public static int GetTransactionId (Connection connection, String token){
+        int id = 0;
+        try {
+            PreparedStatement stmt = connection.prepareStatement("INSERT INTO L_TRANSACTION VALUES(connection_id(),?,NOW());");
+            stmt.setString(1, token);
+            stmt.executeUpdate();
+
+            Statement command = connection.createStatement();
+            ResultSet results = command.executeQuery("SELECT connection_id();");
+            if (results.next()) {
+                id = results.getInt(1);
+            }
+            results.close();
+        } catch (SQLException e) {
+
+        }
+        return id;
+    }
+
     public static int InsertTransaction (String token){
         try {
-            Connection connection = SqlSingleton.getTransactionConnection(token);
-            if(!connection.equals(null)){
-                Statement command = connection.createStatement();
-                ResultSet results = command.executeQuery("SELECT connection_id();");
-                int transactionId = 0;
-                if (!results.next()) {
-                    results.close();
-                }
-                else{
-                    transactionId = results.getInt(1);
-                }
-                results.close();
-                connection.setAutoCommit(false);
-                return transactionId;
-            }else{
-                return 0;
-            }
+            return SqlSingleton.getTransactionConnectionId(token);
         } catch (SQLException e) {
-            e.printStackTrace();
+
         }
         return 0;
     }
@@ -433,17 +403,13 @@ public class SqlHelpers {
      * @return true if action can be performed, otherwise false
      */
     public static boolean UpdateTransaction (Transaction transaction){
-        try {
-            Connection connection = SqlSingleton.getTransactionConnection(transaction.getTransactionId());
-            if(!connection.equals(null)){
-                if (transaction.getAction().toUpperCase().equals("LOAN")){
-                    return putTransactionAction(transaction.getBookId(), false,connection);
-                }else if(transaction.getAction().toUpperCase().equals("RETURN")){
-                    return putTransactionAction(transaction.getBookId(),true,connection);
-                }
+        Connection connection = SqlSingleton.getTransactionConnection(transaction.getTransactionId());
+        if(!connection.equals(null)){
+            if (transaction.getAction().toUpperCase().equals("LOAN")){
+                return putTransactionAction(transaction.getBookId(), false,connection);
+            }else if(transaction.getAction().toUpperCase().equals("RETURN")){
+                return putTransactionAction(transaction.getBookId(),true,connection);
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
         return false;
     }
