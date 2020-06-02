@@ -7,10 +7,10 @@
 #mysql -u root -p
 
 #Create DATABASE
-CREATE DATABASE LBM;
+#CREATE DATABASE LBM;
 
 #Goto Database
-Use LBM;
+#Use LBM;
 
 #Create Table user
 CREATE TABLE L_USER (
